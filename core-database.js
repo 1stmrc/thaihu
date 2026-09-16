@@ -67,7 +67,43 @@ function parseAndLoadFromPayloadTemplate(sourcePayload) {
     refreshUserInterfaceLayout(); saveStateToMemoryCache();
 }
 
-function saveStateToMemoryCache() { localStorage.setItem('THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase)); calculateRealtimeProfits(); }
+// --- HÀM LẤY NGÀY GMT+7 HÀ NỘI ---
+function getVietnamCurrentDateString() {
+    return new Intl.DateTimeFormat('en-CA', { 
+        timeZone: 'Asia/Ho_Chi_Minh', 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+    }).format(new Date());
+}
+
+// --- TỰ ĐỘNG LƯU: RUNTIME + SNAPSHOT RIÊNG TỪNG NGÀY ---
+function saveStateToMemoryCache() { 
+    localStorage.setItem('THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase)); 
+    
+    const todayStr = getVietnamCurrentDateString();
+    const dailySnapshotPackage = {
+        saveDate: todayStr,
+        lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+        systemDatabase: systemDatabase,
+        settings: {
+            materialPrice: document.getElementById('input-material-price')?.value || "0.15",
+            goldRate: document.getElementById('input-gold-rate')?.value || "155.000",
+            ticketPrice: document.getElementById('input-ticket-price')?.value || "24",
+            refundPrice: document.getElementById('input-refund-price')?.value || "15"
+        }
+    };
+    localStorage.setItem('THAIHU_SNAPSHOT_' + todayStr, JSON.stringify(dailySnapshotPackage));
+
+    let historyDays = JSON.parse(localStorage.getItem('THAIHU_HISTORY_INDEX') || '[]');
+    if (!historyDays.includes(todayStr)) {
+        historyDays.push(todayStr);
+        localStorage.setItem('THAIHU_HISTORY_INDEX', JSON.stringify(historyDays));
+    }
+    localStorage.setItem('THAIHU_LAST_ACTIVE_DAY', todayStr);
+
+    calculateRealtimeProfits(); 
+}
 
 function refreshUserInterfaceLayout() {
     renderNavigationSubTabs(); renderActiveWorkspacePanel(); 
@@ -89,9 +125,12 @@ function resetToHardcodedDefault() {
     }
 }
 function resetDailyRunsOnly() {
-    if(confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0? Các ô tích chọn free vẫn giữ nguyên.")) {
+    if(confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0? Các ngày trước đó vẫn lưu an toàn.")) {
+        saveStateToMemoryCache(); // Chốt sổ snapshot ngày hôm nay trước khi đưa về 0
         Object.keys(systemDatabase.members).forEach(id => systemDatabase.members[id].currentRuns = 0);
-        evaluateLineupsDynamicCapacity(); refreshUserInterfaceLayout(); saveStateToMemoryCache();
+        evaluateLineupsDynamicCapacity(); 
+        refreshUserInterfaceLayout(); 
+        saveStateToMemoryCache();
     }
 }
 
@@ -552,3 +591,14 @@ function exportFullConfigurationState() { let blob = new Blob([JSON.stringify(sy
 function importFullConfigurationState(event) { let file = event.target.files[0]; if(!file) return; let reader = new FileReader(); reader.onload = function(e) { try { let parsed = JSON.parse(e.target.result); if(parsed.teams && parsed.members) { systemDatabase = parsed; activeTeamId = systemDatabase.teams[0]?.id || ""; evaluateLineupsDynamicCapacity(); refreshUserInterfaceLayout(); saveStateToMemoryCache(); alert("Đã nạp khôi phục cấu hình thành công!"); } } catch(err) { alert("Lỗi tệp JSON."); } }; reader.readAsText(file); }
 
 window.onload = initSystemEngine;
+// Tự động kiểm tra sang ngày mới lúc 00:00 GMT+7
+function checkAndAutoSnapshotEndOfDay() {
+    const todayStr = getVietnamCurrentDateString();
+    const lastActiveDay = localStorage.getItem('THAIHU_LAST_ACTIVE_DAY');
+    if (lastActiveDay && lastActiveDay !== todayStr) {
+        localStorage.setItem('THAIHU_LAST_ACTIVE_DAY', todayStr);
+    } else if (!lastActiveDay) {
+        localStorage.setItem('THAIHU_LAST_ACTIVE_DAY', todayStr);
+    }
+}
+setInterval(checkAndAutoSnapshotEndOfDay, 30000);
