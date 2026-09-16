@@ -140,7 +140,7 @@ function onFailedTeamChange() {
     onFailedMemberChange();
 }
 
-var tempFailuresState = window.tempFailuresState || {};
+window.tempFailuresState = window.tempFailuresState || {};
 
 function onFailedMemberChange() {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.members) return;
