@@ -155,7 +155,7 @@ function onFailedMemberChange() {
         return;
     }
     
-    tempFailuresState = m.failures ? JSON.parse(JSON.stringify(m.failures)) : {};
+    twindow.tempFailuresState = m.failures ? JSON.parse(JSON.stringify(m.failures)) : {};
     renderFailedRunsList(m);
 }
 
@@ -171,7 +171,7 @@ function renderFailedRunsList(m) {
         if (runIdx > (m.currentRuns || 0)) continue;
         
         renderedCount++;
-        let currentFailure = tempFailuresState[runIdx];
+        let currentFailure = window.tempFailuresState[runIdx];
         let statusText = "Thành công";
         let selectVal = "success";
         
@@ -213,12 +213,12 @@ function renderFailedRunsList(m) {
 
 function updateTempFailureRunState(runIdx, value) {
     if (value === "success") {
-        delete tempFailuresState[runIdx];
+        delete window.tempFailuresState[runIdx];
     } else if (value === "zero") {
-        tempFailuresState[runIdx] = { type: 'zero', nl: 0 };
+        window.tempFailuresState[runIdx] = { type: 'zero', nl: 0 };
     } else if (value === "half") {
         let halfNl = runIdx === 1 ? 12 : 24;
-        tempFailuresState[runIdx] = { type: 'half', nl: halfNl };
+        window.tempFailuresState[runIdx] = { type: 'half', nl: halfNl };
     }
     
     let memberPicker = document.getElementById('failed-member-picker');
@@ -236,7 +236,7 @@ function clearAllMemberFailures() {
     
     if (confirm(`Xóa sạch toàn bộ cấu hình thất bại của [ ${m.name} ]?`)) {
         m.failures = {};
-        tempFailuresState = {};
+        window.tempFailuresState = {};
         renderFailedRunsList(m);
         
         if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity();
@@ -253,7 +253,7 @@ function saveFailedRunsConfiguration() {
     let m = systemDatabase.members[memberPicker.value];
     if (!m) return;
     
-    m.failures = JSON.parse(JSON.stringify(tempFailuresState));
+    m.failures = JSON.parse(JSON.stringify(window.tempFailuresState));
     
     if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity();
     if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
