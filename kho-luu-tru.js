@@ -128,6 +128,16 @@ function parseAndLoadFromPayloadTemplate(sourcePayload) {
    KHỐI 2: LƯU TRỮ TRẠNG THÁI & MẪU MẶC ĐỊNH
    Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 22/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
+// HÀM LẤY NGÀY CHUẨN GIỜ VIỆT NAM GMT+7
+function getVietnamCurrentDateString() {
+    return new Intl.DateTimeFormat('en-CA', { 
+        timeZone: 'Asia/Ho_Chi_Minh', 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+    }).format(new Date());
+}
+
 function saveStateToMemoryCache() {
     let matPrice = document.getElementById('input-material-price');
     let gRate = document.getElementById('input-gold-rate');
@@ -155,7 +165,31 @@ function saveStateToMemoryCache() {
         localStorage.setItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1', JSON.stringify(systemDatabase.merchantTimerDb));
     }
 
+    // 1. Lưu bản runtime V2 đang chạy
     localStorage.setItem('V2_THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase));
+
+    // 2. Lưu snapshot riêng cho từng ngày theo giờ GMT+7 Hà Nội
+    const todayStr = getVietnamCurrentDateString();
+    const dailySnapshotPackage = {
+        saveDate: todayStr,
+        lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+        systemDatabase: systemDatabase,
+        settings: {
+            materialPrice: localStorage.getItem('HEADER_MAT_PRICE') || "0.25",
+            goldRate: localStorage.getItem('HEADER_GOLD_RATE') || "155.000",
+            ticketPrice: localStorage.getItem('HEADER_TICKET_PRICE') || "24",
+            refundPrice: localStorage.getItem('HEADER_REFUND_PRICE') || "16"
+        }
+    };
+    localStorage.setItem('THAIHU_SNAPSHOT_' + todayStr, JSON.stringify(dailySnapshotPackage));
+
+    // 3. Quản lý danh mục các ngày đã lưu
+    let historyDays = JSON.parse(localStorage.getItem('THAIHU_HISTORY_INDEX') || '[]');
+    if (!historyDays.includes(todayStr)) {
+        historyDays.push(todayStr);
+        localStorage.setItem('THAIHU_HISTORY_INDEX', JSON.stringify(historyDays));
+    }
+    localStorage.setItem('THAIHU_LAST_ACTIVE_DAY', todayStr);
 }
 
 function saveCurrentAsDefaultTemplate() { 
@@ -215,6 +249,7 @@ function resetToHardcodedDefault() {
 
 function resetDailyRunsOnly() {
     if (confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0? Các ô tích chọn free và báo thất bại sẽ được làm sạch hoàn toàn.")) {
+        saveStateToMemoryCache(); // Chốt sổ snapshot ngày hôm nay vào kho trước khi đưa về 0
         Object.keys(systemDatabase.members).forEach(id => {
             systemDatabase.members[id].currentRuns = 0;
             systemDatabase.members[id].freeRun2 = false;
@@ -308,5 +343,17 @@ window.resetToHardcodedDefault = resetToHardcodedDefault;
 window.resetDailyRunsOnly = resetDailyRunsOnly;
 window.exportFullConfigurationState = exportFullConfigurationState;
 window.importFullConfigurationState = importFullConfigurationState;
-
+// TỰ ĐỘNG CHỐT SỔ KHI CHUYỂN QUA 00:00 GMT+7 HÀ NỘI
+function checkAndAutoSnapshotEndOfDay() {
+    if (typeof getVietnamCurrentDateString !== 'function') return;
+    const todayStr = getVietnamCurrentDateString();
+    const lastActiveDay = localStorage.getItem('THAIHU_LAST_ACTIVE_DAY');
+    if (lastActiveDay && lastActiveDay !== todayStr) {
+        localStorage.setItem('THAIHU_LAST_ACTIVE_DAY', todayStr);
+    } else if (!lastActiveDay) {
+        localStorage.setItem('THAIHU_LAST_ACTIVE_DAY', todayStr);
+    }
+}
+setInterval(checkAndAutoSnapshotEndOfDay, 30000);
+checkAndAutoSnapshotEndOfDay();
 // Tổng số dòng code trong file này: 235 dòng.
