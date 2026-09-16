@@ -1,0 +1,11 @@
+rồi code từng file 1 đi .từng file 1 
+
+1/ luôn chú thích ở dòng code đầu tiên .tên file chức năng của file .con của ai (tức là file này được gọi về file nào)
+
+2/đêm số đòng code và chú thích số dòng code ở cuối code 
+
+3. chú thích ở dòng đàu tiên những tính năng cửa class này
+4/ chứ thích khoá các đoạn code nói về chức năng đó .nếu đã chạy ổn chú thích ngày sửa và chú thích đã chạy ổn ko được xoá sửa 
+
+
+nhập vào khung nhập liệu thì ko có ẩn pop lợi nhuận

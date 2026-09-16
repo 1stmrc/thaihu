@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Thái Hư - Bản Cấu Hình Vuốt Kéo Cao Cấp</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link class="custom-style" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #111827; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        
+        body { height: 100vh; overflow: hidden; display: flex; flex-direction: column; select-none: none; }
+        
+        /* Hiệu ứng mờ nhẹ hàng đang được kéo thả */
+        .dragging-row { opacity: 0.4; background-color: #1f2937 !important; border: 2px dashed #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased p-2 text-xs select-none">
+
+    <header class="shrink-0 bg-gray-800 border border-gray-700 p-2.5 rounded-xl shadow-xl mb-2.5 z-10">
+        <div class="mx-auto flex flex-col md:flex-row items-center justify-between gap-2 w-full">
+            
+            <div class="flex flex-wrap items-center gap-3 bg-gray-950 px-3 py-2 rounded-lg border border-gray-850 w-full md:w-auto">
+                <div class="flex items-center gap-2 justify-between flex-1 md:flex-none">
+                    <span class="text-gray-400 font-bold text-xs">Giá Nguyên Liệu:</span>
+                    <input id="input-material-price" type="number" step="0.01" value="0.25" class="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-yellow-400 font-bold focus:outline-none focus:border-blue-500 text-center" oninput="calculateRealtimeProfits()">
+                </div>
+                <div class="hidden md:block w-px h-4 bg-gray-800"></div>
+                <div class="flex items-center gap-2 justify-between flex-1 md:flex-none">
+                    <span class="text-gray-400 font-bold text-xs">1K Vàng (VND):</span>
+                    <input id="input-gold-rate" type="text" value="155.000" class="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-green-400 font-bold focus:outline-none focus:border-blue-500 text-center" onkeyup="formatVNDInput(this)" oninput="calculateRealtimeProfits()">
+                </div>
+                <div class="hidden md:block w-px h-4 bg-gray-800"></div>
+                <div class="flex items-center gap-2 justify-between flex-1 md:flex-none">
+                    <span class="text-gray-400 font-bold text-xs">Vé (Vàng):</span>
+                    <input id="input-ticket-price" type="number" value="24" class="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-red-400 font-bold focus:outline-none focus:border-blue-500 text-center" oninput="calculateRealtimeProfits()">
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-1 w-full md:w-auto">
+                <button onclick="resetDailyRunsOnly()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2.5 py-1.5 rounded-lg transition shadow text-[11px]">
+                    <i class="fa-solid fa-arrows-rotate"></i> Reset Ngày
+                </button>
+                <button onclick="resetToHardcodedDefault()" class="bg-red-700 hover:bg-red-800 text-white font-bold px-2.5 py-1.5 rounded-lg transition shadow text-[11px]">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Mặc Định
+                </button>
+                <button onclick="saveCurrentAsDefaultTemplate()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1.5 rounded-lg transition shadow text-[11px]">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Lưu Mặc Định
+                </button>
+                <button onclick="openSettingsModal()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-2.5 py-1.5 rounded-lg transition shadow text-[11px]">
+                    <i class="fa-solid fa-gear"></i> Cài Đặt
+                </button>
+                <button onclick="exportFullConfigurationState()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-lg transition text-[11px] font-bold">
+                    <i class="fa-solid fa-file-export"></i> Xuất File
+                </button>
+                <label class="bg-gray-700 hover:bg-gray-600 text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer font-bold text-[11px]">
+                    <i class="fa-solid fa-file-import"></i> Nạp File
+                    <input type="file" id="import-state-file-controller" class="hidden" accept=".json" onchange="importFullConfigurationState(event)">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col bg-gray-800 rounded-xl border border-gray-700 shadow-2xl min-h-0 relative z-0">
+        
+        <div class="shrink-0 flex flex-wrap items-center justify-between border-b border-gray-700 p-2 gap-2 bg-gray-800 rounded-t-xl z-10">
+            <div id="sub-tabs-bar-holder" class="flex flex-wrap gap-1 max-w-[65%]"></div>
+            <div class="flex items-center gap-1.5">
+                <button onclick="createNewTeamCorePipeline('data')" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded text-[11px] font-bold transition flex items-center gap-1 shadow">
+                    <i class="fa-solid fa-plus"></i> + Thêm Team
+                </button>
+                <button onclick="createNewTeamCorePipeline('lineup')" class="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded text-[11px] font-bold transition flex items-center gap-1 shadow">
+                    <i class="fa-solid fa-shuffle"></i> + Đội Hình Xếp
+                </button>
+                <button onclick="deleteTargetActiveTeamUnit()" class="bg-rose-800 hover:bg-rose-700 text-white p-1 px-2 rounded transition shadow" title="Xóa nhóm">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="active-panel-view-viewport" class="flex-1 overflow-auto custom-scrollbar p-2 bg-gray-850/40 rounded-b-xl"></div>
+    </main>
+
+    <div class="fixed bottom-3 left-3 z-50 flex flex-col items-start gap-2">
+        <div id="floating-deo-card" class="bg-gray-950 border-2 border-purple-500 rounded-2xl p-4 shadow-2xl w-[calc(50vw-1rem)] md:w-80 hidden text-xs">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-2 mb-3">
+                <span class="font-black text-purple-400 uppercase tracking-wider flex items-center gap-1.5 text-xs">
+                    <i class="fa-solid fa-gem"></i> Quản Lý Quẻ Đoài
+                </span>
+                <button onclick="toggleFloatingDeoCard()" class="text-gray-400 hover:text-white font-bold text-base cursor-pointer">&times;</button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2 bg-gray-900 p-2 rounded-xl border border-gray-800 mb-2">
+                <div>
+                    <label class="block text-[10px] text-gray-400 mb-0.5">Giá Đoài Hôm Nay:</label>
+                    <input id="input-current-deo-price" type="number" value="25" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-purple-300 font-bold text-center focus:outline-none" oninput="updateDeoStatisticsDisplays(); calculateRealtimeProfits();">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-gray-400 mb-0.5">Thêm Số Lượng:</label>
+                    <input id="input-deo-amount-increment" type="number" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white font-bold text-center focus:outline-none">
+                </div>
+            </div>
+            <button onclick="commitQuayDoaiEntry()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-1 mb-2">
+                <i class="fa-solid fa-check"></i> Lưu Lượng Quẻ Nhập
+            </button>
+            
+            <div class="space-y-1.5 font-bold text-[11px] text-gray-300">
+                <div class="flex justify-between p-2 bg-gray-900 rounded-lg border border-gray-800"><span>Hôm nay:</span><span id="display-deo-today" class="text-purple-300">0 Quẻ</span></div>
+                <div class="flex justify-between p-2 bg-gray-900 rounded-lg border border-gray-800"><span>Tháng này:</span><span id="display-deo-month" class="text-cyan-300">0 Quẻ</span></div>
+                <div class="flex justify-between p-2 bg-purple-950/40 rounded-lg border border-purple-900/40">
+                    <span>Sự Kiện (<span id="lbl-event-range" class="text-[9px] text-gray-500 font-normal">Chưa cài</span>):</span><span id="display-deo-event" class="text-yellow-400">0 Quẻ</span>
+                </div>
+            </div>
+        </div>
+        <button onclick="toggleFloatingDeoCard()" class="bg-gray-950 border border-purple-500 text-white font-black px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 hover:bg-gray-800 transition cursor-pointer select-none">
+            <i class="fa-solid fa-gem text-purple-400"></i> Nhập Đoài
+        </button>
+    </div>
+
+    <div class="fixed bottom-3 right-3 z-50 flex flex-col items-end gap-2">
+        <div id="floating-profit-card" class="bg-gray-950 border-2 border-emerald-500 rounded-xl p-4 shadow-2xl w-[calc(50vw-1rem)] md:w-80 hidden text-xs font-sans">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-1.5 mb-2">
+                <span class="font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 text-xs"><i class="fa-solid fa-wallet"></i> Thu Nhập Đội Hình</span>
+                <button onclick="toggleFloatingProfitCard()" class="text-gray-400 hover:text-white font-bold text-base cursor-pointer">&times;</button>
+            </div>
+            <div class="space-y-2 font-mono text-gray-300 mb-2">
+                <div class="flex justify-between"><span>Tổng trận đã đi:</span><span id="runtime-total-runs" class="text-blue-400 font-bold text-sm">0</span></div>
+                <div class="flex justify-between"><span>Nguyên liệu thu về:</span><span id="runtime-total-materials" class="text-yellow-400 font-bold text-sm">0 nl</span></div>
+                <div class="flex justify-between"><span>Vốn vé bỏ ra thực:</span><span id="runtime-total-costs" class="text-red-400 font-bold text-sm">0v</span></div>
+                <div class="pt-2 border-t border-gray-800 flex justify-between items-center">
+                    <label class="inline-flex items-center cursor-pointer select-none text-gray-400">
+                        <input id="checkbox-toggle-include-deo" type="checkbox" checked class="sr-only peer" onchange="calculateRealtimeProfits()">
+                        <div class="relative w-5 h-3 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-2 after:w-2 peer-checked:bg-emerald-500 transition-all"></div>
+                        <span class="ms-1.5 font-medium text-gray-300 text-[10px]">Tính cả tiền Đoài</span>
+                    </label>
+                </div>
+            </div>
+            <div class="bg-gray-900 border border-emerald-900 rounded-xl p-3 text-center shadow-inner">
+                <span id="runtime-net-profit-gold" class="text-base font-black text-emerald-400 block">0.00 Vàng</span>
+                <span id="runtime-net-profit-vnd" class="text-[11px] text-gray-400 block font-bold mt-0.5">~ 0 VND</span>
+            </div>
+        </div>
+        <button onclick="toggleFloatingProfitCard()" class="bg-gray-950 border border-emerald-500 text-white font-black px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 hover:bg-gray-800 transition cursor-pointer select-none">
+            <i class="fa-solid fa-chart-pie text-emerald-400"></i> Lợi Nhuận
+        </button>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-gray-800 rounded-xl border border-gray-700 max-w-sm w-full p-4 shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between border-b border-gray-700 pb-2 mb-2">
+                <h3 class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-gear"></i> Cài Đặt Hệ Thống</h3>
+                <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white font-bold text-base cursor-pointer">&times;</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 bg-gray-950 p-2 rounded-xl border border-gray-800 mb-2">
+                <div>
+                    <label class="block text-[9px] text-gray-400 mb-0.5">Ngày Bắt Đầu SK:</label>
+                    <input id="input-event-start-date" type="date" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-xs text-white focus:outline-none" onchange="saveEventConfigDates()">
+                </div>
+                <div>
+                    <label class="block text-[9px] text-gray-400 mb-0.5">Ngày Kết Thúc SK:</label>
+                    <input id="input-event-end-date" type="date" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-xs text-white focus:outline-none" onchange="saveEventConfigDates()">
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="block text-[9px] text-gray-400 mb-0.5">Chọn Nhóm Cài Đặt Lượt:</label>
+                <select id="modal-team-filter-picker" onchange="renderModalMembersConfigRows()" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-[11px] text-white focus:outline-none font-bold"></select>
+            </div>
+            <div id="modal-members-config-scroll-area" class="flex-1 overflow-y-auto space-y-1 pr-0.5 my-1 max-h-[220px] custom-scrollbar"></div>
+            <div class="border-t border-gray-700 pt-3 flex justify-end gap-1.5 text-[11px]">
+                <button onclick="closeSettingsModal()" class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-1.5 rounded-lg">Đóng</button>
+                <button onclick="commitModalMaxRunBoundSettings()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-lg font-bold">Lưu Cấu Hình</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const HARDCODED_FACTORY_SEED = [{"id":"1","name":"Team a","presets":[],"rows":[{"stt":2,"acc":"A.01 dgc","merchant":3,"thaituhu":0,"skip":true,"skipTime":"3h36","charName":"1stmrc","level":83},{"stt":3,"acc":"A.02 5d","merchant":3,"thaituhu":0,"skip":true,"skipTime":"3h34","charName":"1stmrcee","level":84},{"stt":1,"acc":"A.03 nmd","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"ngoctrambinhphuoc","level":85},{"acc":"A.09 cs_","merchant":3,"thaituhu":0,"skip":true,"skipTime":"3h33","charName":"anhthợ mũ bpx","level":84},{"acc":"A.13 nmk_4","merchant":3,"thaituhu":0,"skip":true,"skipTime":"3h35","charName":"VDkso1sever","level":85},{"acc":"A.18 cbb longca6","merchant":3,"thaituhu":0,"skip":true,"skipTime":"3h34","charName":"thiên tội","level":84},{"acc":"A.19 vdk 2002kiemtay_4","merchant":3,"thaituhu":0,"skip":true,"skipTime":"3h37","charName":"succana","level":84},{"acc":"A.24 tld Ditrongcay43","merchant":3,"thaituhu":0,"skip":true,"skipTime":"3h37","charName":"quang trung 043","level":77}]},{"id":"1775509566713","name":"team b","presets":[{"name":"1","order":["B.01 dgc tieungaogiangho201099","B.03 nmd giaphuc12","B.11 cs","B.12 cbq_4","B.13 nmk duytoan1001","B.19 vdk Dinhthanhnien27","B.24 tld Jx8888","B.23 hatieuanh dgt 77"]}],"rows":[{"stt text text":2,"acc":"B.01 dgc tieungaogiangho201099","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level":80},{"acc":"B.03 nmd giaphuc12","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level":80},{"acc":"B.11 cs","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level":80},{"acc":"B.12 cbq_4","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level":80},{"acc":"B.13 nmk duytoan1001","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text":80},{"acc":"B.19 vdk Dinhthanhnien27","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text":77},{"acc":"B.23 hatieuanh dgt 77","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text":77},{"acc":"B.24 tld Jx8888","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text":77}]},{"id":"1775509574469","name":"team c","presets":[{"name":"1","order":["C.01 dgc gacons","C.03 nmd Anhvubn91","C.10 cs_4","C.13 nmk thubunbo2001","C.18 cbb anhvusctn113","C.19 vdk Huynhdore1403","C.23 dgt votinhvangem24","C.24 tld Ditrongcay43"]}],"rows":[{"acc":"C.01 dgc gacons","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text":80},{"acc":"C.03 nmd Anhvubn91","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level":77},{"stt text text":2,"acc":"C.10 cs_4","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level":80},{"acc":"C.13 nmk thubunbo2001","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text":80},{"acc":"C.18 cbb anhvusctn113","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text":80},{"acc":"C.19 vdk Huynhdore1403","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text text":80},{"acc":"C.23 dgt votinhvangem24","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text":77},{"acc":"C.25 vdb saxukemon2","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text":77}]},{"id":"1775630168200","name":"team d","presets":[{"name":"1","order":["D.02 5d baoboi2021","D.03 nmd bachungsv13","D.13 nmk Nmkvip03","D.17 cs","D.18 cbb Jx2cbb1102","D.19 vdk tri0301","D.22 minhnt89 tlt 77","D.saxukemon2 vdk 76"]}],"rows":[{"acc":"D.03 nmd bachungsv13","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text":80},{"acc":"D.13 nmk Nmkvip03","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text":77},{"acc":"D.17 cs","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text text text text":80},{"acc":"D.18 cbb Jx2cbb1102","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text text":77},{"acc":"D.19 vdk tri0301","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level":80},{"acc":"D.22 tlt Gtsa4992","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text text":80},{"acc":"D.25 vdb Thiencd2412","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text text text":80},{"acc":"D.26 tlq Zzolo2019","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","level text text text text":80}]},{"id":"1776917946765","name":"team e","presets":[{"name":"1","order":["E.01dgc Fackson222","E.02 5d mapgianxao","E.03 nmd vtdacc2","E.09 cs saxukemon1","E.13 nmk song5 s16","E.14 dmc_4","E.19vdk mrbun01","E.22 tlt Gtsa4992"]}],"rows":[{"acc":"E.01dgc Fackson222","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text":80},{"acc":"E.02 5d mapgianxao","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text":80},{"acc":"E.03 nmd vtdacc2","merchant":0,"thaituhu":0,"skip":true,"skipTime":"17h36","charName":"","level text text":77},{"acc":"E.09 cs saxukemon1","merchant":0,"thaituhu":0,"skip":true,"skipTime":"17h36","charName":"","level text text text":80},{"acc":"E.13 nmk song5 s16","merchant":0,"thaituhu":0,"skip":true,"skipTime":"17h36","charName":"","level text text text":77},{"acc":"E.14 dmc_4","merchant":0,"thaituhu":0,"skip":true,"skipTime":"17h36","charName":"","level text text":80},{"acc":"E.19vdk mrbun01","merchant":0,"thaituhu":0,"skip":true,"skipTime":"17h36","charName":"","level text text":80},{"acc":"E.22 minhnt89 tlt 77","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text":77}]},{"id":"1779605132756","name":"team G","presets":[],"rows":[{"acc":"G.15 dmc","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text":80},{"acc":"G.02 5d baoboi2021","merchant":0,"thaituhu":0,"skip":false,"skipTime":"","charName":"","level text text text":80}]}];
+
+        let systemDatabase = { teams: [], members: {}, deoHistory: [], eventStartDate: "", eventEndDate: "" };
+        let activeTeamId = "";
+        let tokenCount = Date.now();
+        let draggedRowIndex = null; // Biến tạm phục vụ Drag Drop kéo thả hàng
+
+        function createUniqueId() { tokenCount++; return 'uid_' + tokenCount + '_' + Math.random().toString(36).substring(2, 6); }
+
+        function initSystemEngine() {
+            let savedData = localStorage.getItem('THAI_HU_UPGRADED_RUNTIME_DB') || localStorage.getItem('THAI_HU_PERSIST_DB');
+            if (savedData) {
+                try {
+                    let runtimeCache = JSON.parse(savedData);
+                    if (runtimeCache.teams && runtimeCache.members) {
+                        systemDatabase = runtimeCache;
+                        if (!systemDatabase.deoHistory) systemDatabase.deoHistory = [];
+                        activeTeamId = systemDatabase.teams[0]?.id || "";
+                        refreshUserInterfaceLayout(); return;
+                    }
+                } catch(e) { console.error(e); }
+            }
+            if (localStorage.getItem('THAI_HU_CUSTOM_DEFAULT_TEMPLATE')) {
+                try {
+                    systemDatabase = JSON.parse(localStorage.getItem('THAI_HU_CUSTOM_DEFAULT_TEMPLATE'));
+                    if (!systemDatabase.deoHistory) systemDatabase.deoHistory = [];
+                    Object.keys(systemDatabase.members).forEach(k => systemDatabase.members[k].currentRuns = 0);
+                    activeTeamId = systemDatabase.teams[0]?.id || "";
+                    refreshUserInterfaceLayout(); return;
+                } catch(e) { console.error(e); }
+            }
+            parseAndLoadFromPayloadTemplate(HARDCODED_FACTORY_SEED);
+        }
+
+        function parseAndLoadFromPayloadTemplate(sourcePayload) {
+            systemDatabase.teams = []; systemDatabase.members = {}; systemDatabase.deoHistory = [];
+            sourcePayload.forEach(t => {
+                let teamId = t.id || createUniqueId();
+                let teamObj = { id: teamId, name: t.name, type: 'data', memberIds: [] };
+                t.rows.forEach(r => {
+                    let mId = createUniqueId();
+                    systemDatabase.members[mId] = { id: mId, name: r.acc ? r.acc.trim() : "", maxRuns: 3, currentRuns: 0, originalTeamId: teamId, isEditing: false, freeRun2: false, freeRun3: false };
+                    teamObj.memberIds.push(mId);
+                });
+                while(teamObj.memberIds.length < 8) {
+                    let mId = createUniqueId();
+                    systemDatabase.members[mId] = { id: mId, name: "", maxRuns: 3, currentRuns: 0, originalTeamId: teamId, isEditing: true, freeRun2: false, freeRun3: false };
+                    teamObj.memberIds.push(mId);
+                }
+                systemDatabase.teams.push(teamObj);
+            });
+            activeTeamId = systemDatabase.teams[0]?.id || "";
+            refreshUserInterfaceLayout(); saveStateToMemoryCache();
+        }
+
+        function saveStateToMemoryCache() { localStorage.setItem('THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase)); calculateRealtimeProfits(); }
+
+        function refreshUserInterfaceLayout() {
+            renderNavigationSubTabs(); renderActiveWorkspacePanel(); updateDeoStatisticsDisplays();
+            document.getElementById('input-event-start-date').value = systemDatabase.eventStartDate || "";
+            document.getElementById('input-event-end-date').value = systemDatabase.eventEndDate || "";
+            updateEventRangeLabel();
+        }
+
+        function formatVNDInput(input) { let numeric = input.value.replace(/\D/g, ""); input.value = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+        function getParsedVNDValue(str) { return parseFloat((str||"").replace(/\./g, "")) * 1000 || 0; }
+
+        function saveCurrentAsDefaultTemplate() { localStorage.setItem('THAI_HU_CUSTOM_DEFAULT_TEMPLATE', JSON.stringify(systemDatabase)); alert("Đã lưu mẫu khung đội hình gốc!"); }
+        function resetToHardcodedDefault() {
+            if(confirm("Khôi phục danh sách gốc ban đầu của hệ thống?")) {
+                localStorage.removeItem('THAI_HU_UPGRADED_RUNTIME_DB'); localStorage.removeItem('THAI_HU_CUSTOM_DEFAULT_TEMPLATE');
+                systemDatabase.deoHistory = []; parseAndLoadFromPayloadTemplate(HARDCODED_FACTORY_SEED);
+            }
+        }
+        function resetDailyRunsOnly() {
+            if(confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0?")) {
+                Object.keys(systemDatabase.members).forEach(id => systemDatabase.members[id].currentRuns = 0);
+                refreshUserInterfaceLayout(); saveStateToMemoryCache();
+            }
+        }
+
+        function toggleFloatingProfitCard() { document.getElementById('floating-profit-card').classList.toggle('hidden'); }
+        function toggleFloatingDeoCard() { document.getElementById('floating-deo-card').classList.toggle('hidden'); }
+
+        // --- CẬP NHẬT LOGIC TÍNH TOÁN DỰA THEO TÍCH CHỌN LƯỢT FREE ---
+        function calculateRealtimeProfits() {
+            let materialPrice = parseFloat(document.getElementById('input-material-price').value) || 0;
+            let goldRateVnd = getParsedVNDValue(document.getElementById('input-gold-rate').value);
+            let ticketPrice = parseFloat(document.getElementById('input-ticket-price').value) || 0;
+            let includeDeo = document.getElementById('checkbox-toggle-include-deo').checked;
+            let totalRuns = 0, totalMaterials = 0, totalTicketCostGold = 0;
+
+            Object.keys(systemDatabase.members).forEach(mId => {
+                let m = systemDatabase.members[mId]; if (!m || !m.name) return;
+                let runs = m.currentRuns, max = m.maxRuns; totalRuns += runs;
+                if (runs >= 1) totalMaterials += 24; if (runs >= 2) totalMaterials += 48; if (runs >= 3) totalMaterials += 48;
+                
+                // Lượt 2: Tính toán dựa trên ô tích chọn Free của riêng acc này
+                if (runs >= 2) {
+                    if (m.freeRun2) {
+                        totalTicketCostGold += 0; // Tích chọn Free thì không tốn vàng vé
+                    } else {
+                        totalTicketCostGold += (max === 2) ? Math.max(0, ticketPrice - 16) : ticketPrice;
+                    }
+                }
+                
+                // Lượt 3: Tính toán dựa trên ô tích chọn Free của riêng acc này
+                if (runs >= 3) {
+                    if (m.freeRun3) {
+                        totalTicketCostGold += 0; // Tích chọn Free thì không tốn vàng vé
+                    } else {
+                        totalTicketCostGold += Math.max(0, ticketPrice - 16);
+                    }
+                }
+            });
+
+            let finalNetGoldValue = (totalMaterials * materialPrice) - totalTicketCostGold + (includeDeo ? getDeoValueInTimeframe('today') : 0);
+            let finalNetVndValue = (finalNetGoldValue / 1000) * goldRateVnd;
+
+            document.querySelectorAll('[id="runtime-total-runs"]').forEach(el => el.innerText = totalRuns);
+            document.querySelectorAll('[id="runtime-total-materials"]').forEach(el => el.innerText = totalMaterials + " nl");
+            document.querySelectorAll('[id="runtime-total-costs"]').forEach(el => el.innerText = totalTicketCostGold.toFixed(1) + "v");
+            let profitLabel = document.getElementById('runtime-net-profit-gold');
+            profitLabel.innerText = `${finalNetGoldValue >= 0 ? '+' : ''}${finalNetGoldValue.toFixed(2)} Vàng`;
+            document.getElementById('runtime-net-profit-vnd').innerText = `~ ${Math.round(finalNetVndValue).toLocaleString('vi-VN')} VND`;
+            profitLabel.className = finalNetGoldValue >= 0 ? "text-sm font-black text-emerald-400 block" : "text-sm font-black text-rose-400 block";
+        }
+
+        // --- HÀM TOGGLE ĐỔI TRẠNG THÁI LƯỢT ĐI FREE KHI CLICK Ô TÍCH ---
+        function toggleFreeRunState(memberId, runNumber, isChecked) {
+            let m = systemDatabase.members[memberId];
+            if (m) {
+                if (runNumber === 2) m.freeRun2 = isChecked;
+                if (runNumber === 3) m.freeRun3 = isChecked;
+                calculateRealtimeProfits();
+                saveStateToMemoryCache();
+            }
+        }
+
+        function commitQuayDoaiEntry() {
+            let amountInput = document.getElementById('input-deo-amount-increment'), priceInput = document.getElementById('input-current-deo-price');
+            let count = parseInt(amountInput.value) || 0, price = parseFloat(priceInput.value) || 0;
+            if (count <= 0) return;
+            systemDatabase.deoHistory.push({ date: new Date().toISOString().split('T')[0], count: count, price: price, goldValue: count * price });
+            amountInput.value = 1; updateDeoStatisticsDisplays(); calculateRealtimeProfits(); saveStateToMemoryCache();
+        }
+
+        function getDeoValueInTimeframe(timeframe) {
+            if(!systemDatabase.deoHistory) return 0;
+            let todayStr = new Date().toISOString().split('T')[0], currentMonthStr = todayStr.substring(0, 7);
+            let filterFunc = () => true;
+            if (timeframe === 'today') filterFunc = (item) => item.date === todayStr;
+            else if (timeframe === 'month') filterFunc = (item) => item.date.startsWith(currentMonthStr);
+            else if (timeframe === 'event') {
+                let start = systemDatabase.eventStartDate ? new Date(systemDatabase.eventStartDate) : null, end = systemDatabase.eventEndDate ? new Date(systemDatabase.eventEndDate) : null;
+                filterFunc = (item) => { let d = new Date(item.date); return !(start && d < start) && !(end && d > end); };
+            }
+            let targetedHistory = systemDatabase.deoHistory.filter(filterFunc);
+            
+            if (timeframe === 'today') {
+                let currentInputPrice = parseFloat(document.getElementById('input-current-deo-price').value) || 0;
+                return targetedHistory.reduce((sum, item) => sum + (item.count * currentInputPrice), 0);
+            }
+            return targetedHistory.reduce((sum, item) => sum + item.goldValue, 0);
+        }
+
+        function updateDeoStatisticsDisplays() {
+            if(!systemDatabase.deoHistory) systemDatabase.deoHistory = [];
+            let todayStr = new Date().toISOString().split('T')[0], currentMonthStr = todayStr.substring(0, 7);
+            let currentPrice = parseFloat(document.getElementById('input-current-deo-price').value) || 0;
+
+            let todayRows = systemDatabase.deoHistory.filter(x => x.date === todayStr);
+            let todayCount = todayRows.reduce((s, i) => s + i.count, 0);
+            document.getElementById('display-deo-today').innerText = `${todayCount} Quẻ (${(todayCount * currentPrice).toFixed(1)}v)`;
+
+            let monthRows = systemDatabase.deoHistory.filter(x => x.date.startsWith(currentMonthStr));
+            document.getElementById('display-deo-month').innerText = `${monthRows.reduce((s, i) => s + i.count, 0)} Quẻ (${monthRows.reduce((s, i) => s + i.goldValue, 0).toFixed(1)}v)`;
+
+            let start = systemDatabase.eventStartDate ? new Date(systemDatabase.eventStartDate) : null, end = systemDatabase.eventEndDate ? new Date(systemDatabase.eventEndDate) : null;
+            let evRows = systemDatabase.deoHistory.filter(item => { let d = new Date(item.date); return !(start && d < start) && !(end && d > end); });
+            document.getElementById('display-deo-event').innerText = `${evRows.reduce((s, i) => s + i.count, 0)} Quẻ (${evRows.reduce((s, i) => s + i.goldValue, 0).toFixed(1)}v)`;
+        }
+
+        function saveEventConfigDates() {
+            systemDatabase.eventStartDate = document.getElementById('input-event-start-date').value; systemDatabase.eventEndDate = document.getElementById('input-event-end-date').value;
+            updateEventRangeLabel(); updateDeoStatisticsDisplays(); saveStateToMemoryCache();
+        }
+
+        function updateEventRangeLabel() {
+            let start = systemDatabase.eventStartDate, end = systemDatabase.eventEndDate;
+            document.getElementById('lbl-event-range').innerText = (start && end) ? `${start.substring(5)} đến ${end.substring(5)}` : "Chưa cài";
+        }
+
+        function renderNavigationSubTabs() {
+            let container = document.getElementById('sub-tabs-bar-holder'); container.innerHTML = ""; if(!systemDatabase.teams) return;
+            systemDatabase.teams.forEach(t => {
+                let btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-lg border text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${activeTeamId === t.id ? 'bg-blue-600/20 text-blue-400 border-blue-500 shadow-inner' : 'bg-gray-700/40 text-gray-400 border-gray-700 hover:bg-gray-700'}`;
+                let icon = t.type === 'lineup' ? 'fa-shuffle text-purple-400' : 'fa-users text-emerald-400';
+                btn.innerHTML = `<i class="fa-solid ${icon}"></i> ${t.name}`;
+                btn.onclick = () => { activeTeamId = t.id; renderNavigationSubTabs(); renderActiveWorkspacePanel(); }; container.appendChild(btn);
+            });
+        }
+
+        function createNewTeamCorePipeline(type = 'data') {
+            let labelChar = String.fromCharCode(65 + (systemDatabase.teams.filter(x => x.type === type).length % 26));
+            let teamName = type === 'data' ? `Team ${labelChar.toLowerCase()}` : `Đội Hình Xếp ${labelChar}`;
+            let teamId = 'team_' + Date.now(), teamObj = { id: teamId, name: teamName, type: type, memberIds: [] };
+            for(let i=0; i<8; i++) {
+                let mId = createUniqueId(); if(type === 'data') systemDatabase.members[mId] = { id: mId, name: "", maxRuns: 3, currentRuns: 0, originalTeamId: teamId, isEditing: true, freeRun2: false, freeRun3: false };
+                teamObj.memberIds.push(mId);  
+            }
+            systemDatabase.teams.push(teamObj); activeTeamId = teamId; refreshUserInterfaceLayout(); saveStateToMemoryCache();
+        }
+
+        function deleteTargetActiveTeamUnit() {
+            if(!activeTeamId || !confirm("Xác nhận xóa nhóm này?")) return;
+            let idx = systemDatabase.teams.findIndex(t => t.id === activeTeamId), team = systemDatabase.teams[idx];
+            if(team.type === 'data') team.memberIds.forEach(mId => delete systemDatabase.members[mId]);
+            systemDatabase.teams.splice(idx, 1); activeTeamId = systemDatabase.teams[0]?.id || ""; refreshUserInterfaceLayout(); saveStateToMemoryCache();
+        }
+
+        function onRowDragStart(e, index) { draggedRowIndex = index; e.currentTarget.classList.add('dragging-row'); e.dataTransfer.effectAllowed = 'move'; }
+        function onRowDragOver(e) { e.preventDefault(); }
+        function onRowDragLeave(e) { e.currentTarget.classList.remove('dragging-row'); }
+        function onRowDrop(e, toIndex) {
+            e.preventDefault(); e.currentTarget.classList.remove('dragging-row'); if (draggedRowIndex === null || draggedRowIndex === toIndex) return;
+            let team = systemDatabase.teams.find(x => x.id === activeTeamId); if (!team) return;
+            let targetId = team.memberIds[draggedRowIndex]; team.memberIds.splice(draggedRowIndex, 1); team.memberIds.splice(toIndex, 0, targetId);
+            draggedRowIndex = null; renderActiveWorkspacePanel(); saveStateToMemoryCache();
+        }
+
+        // BẢNG DATA GỐC CHUẨN HÓA RỘNG RÃI TRỰC QUAN (ĐƯỜNG KẺ RÕ RÀNG)
+        function renderDataViewTableLayout(team, targetWrapper) {
+            let html = `
+                <table class="w-full text-left border-collapse min-w-[650px] text-xs">
+                    <thead>
+                        <tr class="bg-gray-900 border-b border-gray-700 text-gray-400 text-[11px] uppercase tracking-wider font-bold">
+                            <th class="p-3 text-center w-12">Kéo</th>
+                            <th class="p-3 text-center w-12">STT</th>
+                            <th class="p-3 text-sm">Tên Tài Khoản</th>
+                            <th class="p-3 text-center w-64">Thanh Tiến Độ Lượt Đi Phụ Bản</th>
+                            <th class="p-3 text-center w-36">Chuyển Nhóm</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700">
+            `;
+
+            team.memberIds.forEach((mId, index) => {
+                let m = systemDatabase.members[mId]; if(!m) return;
+                let textSlotCell = m.isEditing ? `
+                    <div class="flex items-center gap-2 py-1">
+                        <input type="text" id="edit-txt-field-${m.id}" value="${m.name}" placeholder="Nhập tên tài khoản..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-bold">
+                        <button onclick="commitMemberNameSave('${m.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shrink-0 shadow"><i class="fa-solid fa-save"></i> Lưu</button>
+                    </div>` : `
+                    <div class="flex items-center justify-between group py-2.5">
+                        <span class="font-bold text-gray-100 text-base tracking-wide">${m.name || '<span class="text-gray-600 font-normal italic">[Chưa đặt tài khoản]</span>'}</span>
+                        <button onclick="enableMemberNameEditing('${m.id}')" class="text-blue-400 text-[11px] hidden group-hover:inline-block bg-gray-700/80 px-2 py-1 rounded-md border border-gray-600 transition"><i class="fa-solid fa-pen"></i> Sửa Tên</button>
+                    </div>`;
+
+                let crossMigrationOptions = systemDatabase.teams.filter(x => x.type === 'data' && x.id !== team.id).map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+
+                let percent = m.maxRuns > 0 ? (m.currentRuns / m.maxRuns) * 100 : 0;
+                let fillBg = m.currentRuns === m.maxRuns ? "bg-emerald-500" : "bg-teal-500";
+                let textColor = m.currentRuns === 0 ? "text-white opacity-80" : "text-green-300 font-black drop-shadow-md";
+                let runColorStyle = m.currentRuns === 0 ? "text-white" : "text-green-300 font-black";
+
+                // ĐOẠN LOGIC HIỂN THỊ CÁC Ô TÍCH CHỌN CHÍNH XÁC THEO TỪNG ACC (F2/F3)
+                let checkboxesHtml = "";
+                if (m.maxRuns === 3) {
+                    checkboxesHtml = `
+                        <div class="flex items-center gap-1.5 ml-1 shrink-0 bg-gray-900 border border-gray-700 px-2 py-1 rounded-lg">
+                            <label class="flex items-center gap-0.5 cursor-pointer select-none text-[10px] text-purple-400 font-bold">
+                                <input type="checkbox" ${m.freeRun2 ? 'checked' : ''} onchange="toggleFreeRunState('${m.id}', 2, this.checked)" class="rounded bg-gray-800 border-gray-600 text-purple-500 focus:ring-0 focus:ring-offset-0 w-3 h-3 cursor-pointer">
+                                <span>L2</span>
+                            </label>
+                            <label class="flex items-center gap-0.5 cursor-pointer select-none text-[10px] text-cyan-400 font-bold">
+                                <input type="checkbox" ${m.freeRun3 ? 'checked' : ''} onchange="toggleFreeRunState('${m.id}', 3, this.checked)" class="rounded bg-gray-800 border-gray-600 text-cyan-500 focus:ring-0 focus:ring-offset-0 w-3 h-3 cursor-pointer">
+                                <span>L3</span>
+                            </label>
+                        </div>`;
+                } else if (m.maxRuns === 2) {
+                    checkboxesHtml = `
+                        <div class="flex items-center gap-1.5 ml-1 shrink-0 bg-gray-900 border border-gray-700 px-2 py-1 rounded-lg">
+                            <label class="flex items-center gap-0.5 cursor-pointer select-none text-[10px] text-purple-400 font-bold">
+                                <input type="checkbox" ${m.freeRun2 ? 'checked' : ''} onchange="toggleFreeRunState('${m.id}', 2, this.checked)" class="rounded bg-gray-800 border-gray-600 text-purple-500 focus:ring-0 focus:ring-offset-0 w-3 h-3 cursor-pointer">
+                                <span>L2</span>
+                            </label>
+                        </div>`;
+                }
+
+                html += `
+                    <tr class="hover:bg-gray-800/40 transition group-rows" 
+                        draggable="true" 
+                        ondragstart="onRowDragStart(event, ${index})" 
+                        ondragover="onRowDragOver(event)" 
+                        ondragleave="onRowDragLeave(event)"
+                        ondrop="onRowDrop(event, ${index})">
+                        
+                        <td class="p-2 text-center align-middle">
+                            <div class="w-8 h-8 flex items-center justify-center bg-gray-800 border border-gray-700 rounded-lg cursor-grab active:cursor-grabbing text-gray-400 hover:text-white transition shadow-sm" title="Nhấn giữ kéo để đổi hàng">
+                                <i class="fa-solid fa-bars text-sm"></i>
+                            </div>
+                        </td>
+                        <td class="p-2 text-center font-mono text-gray-500 font-bold text-sm align-middle">${index + 1}</td>
+                        <td class="p-2 align-middle px-3">${textSlotCell}</td>
+                        
+                        <td class="p-2 align-middle">
+                            <div class="flex items-center gap-1 w-full max-w-[320px] mx-auto">
+                                <button onclick="adjustRunsCounter('${m.id}', -1)" class="w-7 h-8 bg-gray-800 border border-gray-600 text-gray-400 hover:bg-rose-950 hover:text-rose-400 rounded-xl flex items-center justify-center font-black text-sm shrink-0 transition" title="Lùi lại 1 trận">&minus;</button>
+                                
+                                <button onclick="adjustRunsCounter('${m.id}', 1)" class="relative flex-1 h-8 rounded-xl border border-gray-600 overflow-hidden shadow-inner bg-gray-950 cursor-pointer group hover:border-gray-500 transition-colors">
+                                    <div class="absolute left-0 top-0 h-full ${fillBg} transition-all duration-300 ease-out opacity-85 group-hover:opacity-100" style="width: ${percent}%;"></div>
+                                    <div class="absolute inset-0 flex items-center justify-center text-xs font-black ${textColor} z-10 tracking-wider">
+                                        <span class="mr-1 opacity-70 text-[10px] font-normal text-white">Đi ải</span> 
+                                        <span class="font-mono bg-gray-900/40 px-1 rounded ${runColorStyle}">${m.currentRuns} / ${m.maxRuns}</span>
+                                    </div>
+                                </button>
+                                
+                                ${checkboxesHtml}
+
+                                <button onclick="copyToClipboardTextSystem('${m.name}')" class="w-7 h-8 bg-gray-800 border border-gray-600 text-gray-400 hover:text-white rounded-xl flex items-center justify-center text-xs shrink-0 transition" title="Copy tên"><i class="fa-solid fa-copy"></i></button>
+                            </div>
+                        </td>
+                        <td class="p-2 text-center align-middle">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <select id="migration-target-box-${m.id}" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-xs text-white focus:outline-none max-w-[95px] font-semibold">
+                                    <option value="">- Chọn -</option>${crossMigrationOptions}
+                                </select>
+                                <button onclick="executeRecordTeamMigration('${m.id}', '${team.id}')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-md transition shadow">Chuyển</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`; targetWrapper.innerHTML = html;
+        }
+
+        function renderLineupViewTableLayout(team, targetWrapper) {
+            let html = `
+                <table class="w-full text-left border-collapse min-w-[500px] text-xs">
+                    <thead>
+                        <tr class="bg-gray-900 border-b border-gray-700 text-gray-400 text-[10px] uppercase font-bold tracking-wider">
+                            <th class="p-3 text-center w-12">STT</th>
+                            <th class="p-3 text-sm">Lắp Đội Hình Sắp Xếp Trận (Lọc Tự Động Còn Lượt)</th>
+                            <th class="p-3 text-center w-56">Tiến Độ Lượt Ngày</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700">
+            `;
+
+            team.memberIds.forEach((selectedMemberId, index) => {
+                let boundMember = systemDatabase.members[selectedMemberId];
+                let selectMenuHtml = `<select onchange="bindSelectionToLineupIndexSlot('${team.id}', ${index}, this.value)" class="w-full bg-gray-700 border border-gray-600 rounded-xl p-2 text-sm font-bold text-white focus:outline-none max-w-xs shadow-sm">`;
+                selectMenuHtml += `<option value="">-- Click chọn tài khoản bot --</option>`;
+
+                systemDatabase.teams.filter(x => x.type === 'data').forEach(srcTeam => {
+                    let insideGroupHtml = "";
+                    srcTeam.memberIds.forEach(mId => {
+                        let m = systemDatabase.members[mId]; if(!m || !m.name) return;
+                        if (mId === selectedMemberId || m.currentRuns < m.maxRuns) {
+                            insideGroupHtml += `<option value="${m.id}" ${mId === selectedMemberId ? 'selected' : ''}>${m.name} (${m.currentRuns}/${m.maxRuns})</option>`;
+                        }
+                    });
+                    if(insideGroupHtml) selectMenuHtml += `<optgroup label="📂 ${srcTeam.name.toUpperCase()}">${insideGroupHtml}</optgroup>`;
+                });
+                selectMenuHtml += `</select>`;
+
+                let progressBarMeter = `<span class="text-gray-600 italic text-[11px]">- Ô trống trận -</span>`;
+                if (boundMember) {
+                    let percent = boundMember.maxRuns > 0 ? (boundMember.currentRuns / boundMember.maxRuns) * 100 : 0;
+                    let fillBg = boundMember.currentRuns === boundMember.maxRuns ? "bg-emerald-500" : "bg-teal-500";
+                    let textColor = boundMember.currentRuns === 0 ? "text-white opacity-80" : "text-green-300 font-black";
+
+                    progressBarMeter = `
+                        <div class="flex items-center gap-1.5 w-full max-w-[210px] mx-auto">
+                            <button onclick="adjustRunsCounter('${boundMember.id}', -1)" class="w-8 h-8 bg-gray-800 border border-gray-600 text-gray-400 hover:bg-rose-950 hover:text-rose-400 rounded-xl flex items-center justify-center font-black text-sm shrink-0 transition">&minus;</button>
+                            <button onclick="adjustRunsCounter('${boundMember.id}', 1)" class="relative flex-1 h-8 rounded-xl border border-gray-600 overflow-hidden shadow-inner bg-gray-955 cursor-pointer group hover:border-gray-500 transition">
+                                <div class="absolute left-0 top-0 h-full ${fillBg} transition-all duration-300" style="width: ${percent}%;"></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-xs font-black ${textColor} z-10 tracking-wider">
+                                    ${boundMember.currentRuns} / ${boundMember.maxRuns}
+                                </div>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <tr class="hover:bg-gray-800/20 transition">
+                        <td class="p-2 text-center font-mono text-gray-500 font-bold text-sm align-middle">${index + 1}</td>
+                        <td class="p-2 align-middle">${selectMenuHtml}</td>
+                        <td class="p-2 align-middle">${progressBarMeter}</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`; targetWrapper.innerHTML = html;
+        }
+
+        function renderActiveWorkspacePanel() {
+            let viewport = document.getElementById('active-panel-view-viewport'); viewport.innerHTML = ""; if(!systemDatabase.teams) return;
+            let team = systemDatabase.teams.find(t => t.id === activeTeamId);
+            if(!team) { viewport.innerHTML = `<div class="text-gray-500 text-center py-8 text-xs">Vui lòng chọn hoặc thêm một nhóm làm việc.</div>`; return; }
+            if(team.type === 'data') { renderDataViewTableLayout(team, viewport); } else { renderLineupViewTableLayout(team, viewport); }
+        }
+
+        function commitMemberNameSave(id) { let field = document.getElementById(`edit-txt-field-${id}`); if(field && systemDatabase.members[id]) { systemDatabase.members[id].name = field.value.trim(); systemDatabase.members[id].isEditing = false; renderActiveWorkspacePanel(); saveStateToMemoryCache(); } }
+        function enableMemberNameEditing(id) { if(systemDatabase.members[id]) { systemDatabase.members[id].isEditing = true; renderActiveWorkspacePanel(); } }
+        function adjustRunsCounter(memberId, step) { let m = systemDatabase.members[memberId]; if(!m) return; let targetValue = m.currentRuns + step; if (targetValue < 0) return; if (targetValue > m.maxRuns && step > 0) { alert(`Đã chạm giới hạn ${m.maxRuns} lượt cấu hình ngày!`); return; } m.currentRuns = targetValue; renderActiveWorkspacePanel(); saveStateToMemoryCache(); }
+        function bindSelectionToLineupIndexSlot(lineupTeamId, index, memberId) { let team = systemDatabase.teams.find(x => x.id === lineupTeamId); if(team) { team.memberIds[index] = memberId; renderActiveWorkspacePanel(); saveStateToMemoryCache(); } }
+        
+        function executeRecordTeamMigration(memberId, sourceTeamId) {
+            let destTeamId = document.getElementById(`migration-target-box-${memberId}`).value; if(!destTeamId) return;
+            let sTeam = systemDatabase.teams.find(x => x.id === sourceTeamId), dTeam = systemDatabase.teams.find(x => x.id === destTeamId), mObj = systemDatabase.members[memberId];
+            if(!sTeam || !dTeam || !mObj) return;
+            let emptyTargetIdx = dTeam.memberIds.findIndex(id => !systemDatabase.members[id] || systemDatabase.members[id].name.trim() === "");
+            if(emptyTargetIdx !== -1) { delete systemDatabase.members[dTeam.memberIds[emptyTargetIdx]]; dTeam.memberIds[emptyTargetIdx] = memberId; } 
+            else { if(dTeam.memberIds.length >= 8) { alert("Nhóm đích đã đầy đủ 8 vị trí!"); return; } dTeam.memberIds.push(memberId); }
+            let sIdx = sTeam.memberIds.indexOf(memberId); if(sIdx !== -1) { let newBlankId = createUniqueId(); systemDatabase.members[newBlankId] = { id: newBlankId, name: "", maxRuns: 3, currentRuns: 0, originalTeamId: sourceTeamId, isEditing: true, freeRun2: false, freeRun3: false }; sTeam.memberIds[sIdx] = newBlankId; }
+            mObj.originalTeamId = destTeamId; refreshUserInterfaceLayout(); saveStateToMemoryCache();
+        }
+
+        function copyToClipboardTextSystem(str) { if(!str) return; navigator.clipboard.writeText(str).then(() => { let toast = document.createElement('div'); toast.className = "fixed bottom-16 left-1/2 -translate-x-1/2 bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] z-50 shadow-2xl"; toast.innerText = `Đã Copy: ${str}`; document.body.appendChild(toast); setTimeout(() => toast.remove(), 1000); }); }
+
+        function openSettingsModal() { document.getElementById('modal-team-filter-picker').innerHTML = systemDatabase.teams.filter(x => x.type === 'data').map(x => `<option value="${x.id}">${x.name.toUpperCase()}</option>`).join(''); document.getElementById('settings-modal').classList.remove('hidden'); renderModalMembersConfigRows(); }
+        function closeSettingsModal() { document.getElementById('settings-modal').classList.add('hidden'); }
+        function renderModalMembersConfigRows() {
+            let teamId = document.getElementById('modal-team-filter-picker').value, targetWrapper = document.getElementById('modal-members-config-scroll-area'); targetWrapper.innerHTML = ""; let team = systemDatabase.teams.find(x => x.id === teamId); if(!team) return;
+            team.memberIds.forEach(mId => { let m = systemDatabase.members[mId]; if(!m || !m.name) return; let block = document.createElement('div'); block.className = "flex items-center justify-between bg-gray-900 p-2 rounded-lg border border-gray-750 gap-2 text-xs"; block.innerHTML = `<div class="truncate font-bold text-gray-200">${m.name}</div><select data-target-mid="${m.id}" class="modal-inner-max-run-select bg-gray-800 border border-gray-600 rounded p-1 text-[11px] text-yellow-400 font-bold focus:outline-none"><option value="1" ${m.maxRuns === 1 ? 'selected' : ''}>Max 1 Lượt</option><option value="2" ${m.maxRuns === 2 ? 'selected' : ''}>Max 2 Lượt</option><option value="3" ${m.maxRuns === 3 ? 'selected' : ''}>Max 3 Lượt</option></select>`; targetWrapper.appendChild(block); });
+        }
+        function commitModalMaxRunBoundSettings() { document.querySelectorAll('.modal-inner-max-run-select').forEach(box => { let mId = box.getAttribute('data-target-mid'), maxVal = parseInt(box.value) || 3; if(systemDatabase.members[mId]) { systemDatabase.members[mId].maxRuns = maxVal; if(systemDatabase.members[mId].currentRuns > maxVal) systemDatabase.members[mId].currentRuns = maxVal; } }); closeSettingsModal(); refreshUserInterfaceLayout(); saveStateToMemoryCache(); }
+        function exportFullConfigurationState() { let blob = new Blob([JSON.stringify(systemDatabase, null, 2)], { type: "application/json" }); let anchor = document.createElement('a'); anchor.href = URL.createObjectURL(blob); anchor.download = `Backup_Thai_Hu_Farm_${Date.now()}.json`; anchor.click(); }
+        function importFullConfigurationState(event) { let file = event.target.files[0]; if(!file) return; let reader = new FileReader(); reader.onload = function(e) { try { let parsed = JSON.parse(e.target.result); if(parsed.teams && parsed.members) { systemDatabase = parsed; activeTeamId = systemDatabase.teams[0]?.id || ""; refreshUserInterfaceLayout(); saveStateToMemoryCache(); alert("Đã nạp khôi phục cấu hình thành công!"); } } catch(err) { alert("Lỗi tệp JSON."); } }; reader.readAsText(file); }
+
+        window.onload = initSystemEngine;
+    </script>
+</body>
+</html>
