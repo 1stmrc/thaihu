@@ -1,4 +1,4 @@
-// Tên file: giao-dien-thuong-nhan.js
+// Tên file: giao-dien-thuong-nhan
 // Chức năng: Bộ điều phối popup Thu Nhập Thương Nhân (quét chuẩn 100% 64 acc từ 8 Data Team, trừ đúng acc khóa, có nút gạt [Bỏ Hoàn Vàng] auto bật sẵn, tính 1.2v/lượt) & Quản lý Thất Bại.
 // Con của file: index.html (Được nạp ở cuối cùng trước script.js).
 // Danh sách tính năng của file:
