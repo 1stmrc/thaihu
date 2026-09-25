@@ -1,7 +1,8 @@
 /* ==========================================================================
    MODULE: GIAO DIỆN SO SÁNH VÀ ĐIỀU PHỐI HOẠT ĐỘNG TỔNG HỢP
-   Chức năng: Cố định 3 cột ngang, tự động tính toán thời gian thực (real-time)
-   cho cả 3 hoạt động Thái Hư - Thương Nhân - Tàng Kiếm khi gõ phím (oninput).
+   Chức năng: Cố định 3 cột ngang, tự động tính toán thời gian thực (oninput)
+   và tích hợp bộ xếp hạng ĐÁNH GIÁ TOP ĐỘNG (Top 1, Top 2, Lời nhiều nhất)
+   so sánh trực tiếp giữa Thái Hư, Thương Nhân và Tàng Kiếm.
    ========================================================================== */
 
 function switchToOptimizationTab() {
@@ -107,15 +108,15 @@ function renderOptimizationWorkspaceView() {
 
                         '<div class="grid grid-cols-3 gap-1 pt-1">' +
                             '<label class="flex items-center justify-center gap-1 bg-gray-900 border border-gray-800 p-1 rounded text-[10px] font-bold text-gray-300 cursor-pointer hover:border-cyan-500/40 transition">' +
-                                '<input type="checkbox" id="chk-opt-thaihu-exclude-refund" checked onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-gray-700 text-cyan-500 focus:ring-0 w-3 h-3 cursor-pointer">' +
+                                '<input type="checkbox" id="chk-opt-thaihu-exclude-refund" checked onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-gray-700 text-cyan-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer">' +
                                 '<span>Bỏ Hoàn</span>' +
                             '</label>' +
                             '<label class="flex items-center justify-center gap-1 bg-gray-900 border border-gray-800 p-1 rounded text-[10px] font-bold text-gray-300 cursor-pointer hover:border-cyan-500/40 transition">' +
-                                '<input type="checkbox" id="chk-opt-thaihu-free-tickets" onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-gray-700 text-cyan-500 focus:ring-0 w-3 h-3 cursor-pointer">' +
+                                '<input type="checkbox" id="chk-opt-thaihu-free-tickets" onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-gray-700 text-cyan-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer">' +
                                 '<span>Free Vé</span>' +
                             '</label>' +
                             '<label class="flex items-center justify-center gap-1 bg-gray-900 border border-gray-800 p-1 rounded text-[10px] font-bold text-gray-300 cursor-pointer hover:border-cyan-500/40 transition">' +
-                                '<input type="checkbox" id="chk-opt-thaihu-add-deo" onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-gray-700 text-purple-500 focus:ring-0 w-3 h-3 cursor-pointer">' +
+                                '<input type="checkbox" id="chk-opt-thaihu-add-deo" onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-gray-700 text-purple-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer">' +
                                 '<span>+ Đoài</span>' +
                             '</label>' +
                         '</div>' +
@@ -134,7 +135,7 @@ function renderOptimizationWorkspaceView() {
                         '<div class="flex items-center justify-between text-amber-400 font-black text-xs border-b border-gray-800 pb-1">' +
                             '<span class="flex items-center gap-1.5"><i class="fa-solid fa-gem"></i> 2. THƯƠNG NHÂN</span>' +
                             '<label class="flex items-center gap-1 cursor-pointer text-[10px] font-bold text-amber-300">' +
-                                '<input type="checkbox" id="chk-opt-merchant-x3" checked onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-amber-500 text-amber-500 focus:ring-0 w-3 h-3 cursor-pointer">' +
+                                '<input type="checkbox" id="chk-opt-merchant-x3" checked onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-amber-500 text-amber-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer">' +
                                 '<span>x3 Lượt</span>' +
                             '</label>' +
                         '</div>' +
@@ -145,18 +146,18 @@ function renderOptimizationWorkspaceView() {
                         '<div class="grid grid-cols-2 gap-1.5 pt-0.5">' +
                             '<div class="flex flex-col gap-0.5">' +
                                 '<span class="text-[9.5px] text-gray-400 font-bold">Số ACC Mở (x):</span>' +
-                                '<input type="number" id="input-opt-merchant-simul-acc" value="11" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
+                                '<input type="number" id="input-opt-merchant-simul-acc" value="14" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
                             '</div>' +
                             '<div class="flex flex-col gap-0.5">' +
                                 '<span class="text-[9.5px] text-gray-400 font-bold">Thời Gian (Phút):</span>' +
-                                '<input type="number" id="input-opt-merchant-mins-block" value="11" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
+                                '<input type="number" id="input-opt-merchant-mins-block" value="15" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
                             '</div>' +
                         '</div>' +
                         '<div class="flex items-center justify-between gap-1 pt-1 border-t border-gray-850">' +
                             '<span class="text-[10.5px] text-gray-400 font-bold">Tổng Số Tài Khoản:</span>' +
                             '<div class="flex items-center gap-1">' +
                                 '<input type="number" id="input-opt-merchant-total-acc" value="64" oninput="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
-                                '<span id="lbl-merchant-calc-time" class="text-[9.5px] font-mono text-cyan-400 font-bold">(~ 21 phút)</span>' +
+                                '<span id="lbl-merchant-calc-time" class="text-[9.5px] font-mono text-cyan-400 font-bold">(~ 75 phút)</span>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
@@ -170,11 +171,11 @@ function renderOptimizationWorkspaceView() {
                             '<span class="flex items-center gap-1.5"><i class="fa-solid fa-shield-halved"></i> 3. TÀNG KIẾM</span>' +
                             '<div class="flex items-center gap-1.5">' +
                                 '<label class="flex items-center gap-1 cursor-pointer text-[9.5px] font-bold text-cyan-300">' +
-                                    '<input type="checkbox" id="chk-opt-tangkiem-lead-refund" checked onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-cyan-500 text-cyan-500 focus:ring-0 w-3 h-3 cursor-pointer">' +
+                                    '<input type="checkbox" id="chk-opt-tangkiem-lead-refund" checked onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-cyan-500 text-cyan-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer">' +
                                     '<span>Hoàn ĐT</span>' +
                                 '</label>' +
                                 '<label class="flex items-center gap-1 cursor-pointer text-[9.5px] font-bold text-cyan-300">' +
-                                    '<input type="checkbox" id="chk-opt-tangkiem-x3" checked onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-cyan-500 text-cyan-500 focus:ring-0 w-3 h-3 cursor-pointer">' +
+                                    '<input type="checkbox" id="chk-opt-tangkiem-x3" checked onchange="runActivitiesComparisonCalculation()" class="rounded bg-gray-800 border-cyan-500 text-cyan-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer">' +
                                     '<span>x3 Lượt</span>' +
                                 '</label>' +
                             '</div>' +
@@ -186,7 +187,7 @@ function renderOptimizationWorkspaceView() {
                         '<div class="grid grid-cols-2 gap-1.5 pt-0.5">' +
                             '<div class="flex flex-col gap-0.5">' +
                                 '<span class="text-[9.5px] text-gray-400 font-bold">Số Team Đi:</span>' +
-                                '<input type="number" id="input-opt-tangkiem-teams" value="8" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
+                                '<input type="number" id="input-opt-tangkiem-teams" value="1" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
                             '</div>' +
                             '<div class="flex flex-col gap-0.5">' +
                                 '<span class="text-[9.5px] text-gray-400 font-bold">Giá Vé TK (Vàng):</span>' +
@@ -206,13 +207,13 @@ function renderOptimizationWorkspaceView() {
     runActivitiesComparisonCalculation();
 }
 
-// ĐỘNG CƠ TÍNH THƯƠNG NHÂN ĐỘC LẬP (ĐÃ GỠ TOÀN BỘ SỐ CHẾT)
+// ĐỘNG CƠ TÍNH THƯƠNG NHÂN ĐỘC LẬP
 function calculateMerchantDirectData() {
     let isEvent = document.getElementById('chk-opt-event-toggle')?.checked ?? true;
     let isTnX3 = document.getElementById('chk-opt-merchant-x3')?.checked ?? true;
     let goldPerRun = parseFloat(document.getElementById('input-opt-merchant-gold-per-run')?.value) || 1.3;
-    let simulAcc = parseFloat(document.getElementById('input-opt-merchant-simul-acc')?.value) || 11;
-    let minsBlock = parseFloat(document.getElementById('input-opt-merchant-mins-block')?.value) || 11;
+    let simulAcc = parseFloat(document.getElementById('input-opt-merchant-simul-acc')?.value) || 14;
+    let minsBlock = parseFloat(document.getElementById('input-opt-merchant-mins-block')?.value) || 15;
     let totalAcc = parseInt(document.getElementById('input-opt-merchant-total-acc')?.value) || 64;
 
     let rawMatPrice = document.getElementById('input-material-price')?.value || "0.15";
@@ -222,19 +223,15 @@ function calculateMerchantDirectData() {
     let goldRateVND = parseFloat(rawGoldRate) || 155000;
 
     let runsMultiplier = isTnX3 ? 3 : 1;
-    // Mỗi acc 1 lượt nhận 8 NL (sự kiện) -> x3 lượt nhận 24 NL
     let totalMaterials = isEvent ? (totalAcc * 8 * runsMultiplier) : 0;
     let matGoldValue = totalMaterials * matPrice;
     let directGold = totalAcc * goldPerRun * runsMultiplier;
     let totalIncomeGold = matGoldValue + directGold;
     let totalVND = (totalIncomeGold / 1000) * goldRateVND;
 
-    // Tốc độ cày (acc/h)
-    let speedAccPerHour = (minsBlock !== 0) ? ((simulAcc / minsBlock) * 60) : 60.0;
-    
-    // Tính chính xác thời gian hoàn thành theo số acc đang mở và tổng số tài khoản
-    let numBatches = (simulAcc !== 0) ? Math.ceil(totalAcc / simulAcc) : 1;
-    let totalMins = Math.round(numBatches * minsBlock) || 21;
+    let speedAccPerHour = (minsBlock !== 0) ? ((simulAcc / minsBlock) * 60) : 56.0;
+    let numBatches = (simulAcc !== 0) ? Math.ceil(totalAcc / simulAcc) : 5;
+    let totalMins = Math.round(numBatches * minsBlock) || 75;
     let totalHours = totalMins / 60;
 
     let lblTime = document.getElementById('lbl-merchant-calc-time');
@@ -263,7 +260,7 @@ function calculateTangKiemDirectData() {
     let isCaptainBonusTK = document.getElementById('chk-opt-tangkiem-lead-refund')?.checked ?? true;
     let isTangkiemX3 = document.getElementById('chk-opt-tangkiem-x3')?.checked ?? true;
     let captainBonusGoldTK = parseFloat(document.getElementById('input-opt-tangkiem-refund-lead-gold')?.value) || 25;
-    let tkTeams = parseInt(document.getElementById('input-opt-tangkiem-teams')?.value) || 8;
+    let tkTeams = parseInt(document.getElementById('input-opt-tangkiem-teams')?.value) || 1;
     let tkTicketPrice = parseFloat(document.getElementById('input-opt-tangkiem-ticket-price')?.value) || 23;
     let tkMinsPerTeam = parseFloat(document.getElementById('input-opt-tangkiem-mins-per-team')?.value) || 45;
 
@@ -303,6 +300,7 @@ function calculateTangKiemDirectData() {
     };
 }
 
+// BỘ ĐIỀU PHỐI TÍNH TOÁN & XẾP HẠNG ĐÁNH GIÁ TOP ĐỘNG
 function runActivitiesComparisonCalculation() {
     let isProfitLossMode = document.getElementById('chk-opt-profit-loss-toggle')?.checked ?? false;
     let cardMerchant = document.getElementById('card-col-merchant');
@@ -322,8 +320,51 @@ function runActivitiesComparisonCalculation() {
         }
     }
 
-    // 1. TÍNH VÀ CẬP NHẬT ẢI THÁI HƯ
+    // 1. Tính toán số liệu của 3 hoạt động
     let th = typeof calculateThaiHuComparison === 'function' ? calculateThaiHuComparison() : null;
+    let mc = calculateMerchantDirectData();
+    let tk = calculateTangKiemDirectData();
+
+    // 2. Gom danh sách để xếp hạng Tốc độ & Lợi nhuận
+    let acts = [];
+    if (th) acts.push({ id: 'th', speed: th.goldPerHour, profit: th.netProfitGold });
+    if (!isProfitLossMode && mc) acts.push({ id: 'mc', speed: mc.goldPerHour, profit: mc.netProfitGold });
+    if (tk) acts.push({ id: 'tk', speed: tk.goldPerHour, profit: tk.netProfitGold });
+
+    // Sắp xếp giảm dần theo tốc độ Vàng/Giờ
+    let sortedBySpeed = [...acts].sort(function(a, b) { return b.speed - a.speed; });
+
+    // Tìm lợi nhuận ròng cao nhất toàn bảng
+    let maxProfitVal = -Infinity;
+    acts.forEach(function(a) {
+        if (Math.sign(a.profit - maxProfitVal) === 1) {
+            maxProfitVal = a.profit;
+        }
+    });
+
+    // Hàm sinh huy hiệu đánh giá chuẩn xác theo thứ hạng
+    function generateEvaluationBadges(actId) {
+        let speedRank = sortedBySpeed.findIndex(function(a) { return a.id === actId; }) + 1;
+        let curAct = acts.find(function(a) { return a.id === actId; });
+        let isMaxProfit = Boolean(acts[1]) && Math.sign(maxProfitVal) === 1 && curAct && curAct.profit === maxProfitVal;
+
+        let badgeHtml = '';
+        if (speedRank === 1) {
+            badgeHtml += '<div class="bg-emerald-955/40 border border-emerald-500/40 py-1 px-2 rounded text-center text-emerald-400 font-black text-[11px]"><i class="fa-solid fa-bolt mr-1"></i> HIỆU SUẤT TỐT NHẤT (Top 1 Tốc Độ)</div>';
+        } else if (speedRank === 2) {
+            badgeHtml += '<div class="bg-blue-955/40 border border-blue-500/40 py-1 px-2 rounded text-center text-blue-300 font-black text-[11px]"><i class="fa-solid fa-medal mr-1"></i> HIỆU QUẢ NHÌ (Top 2 Tốc Độ)</div>';
+        } else {
+            badgeHtml += '<div class="bg-gray-900 border border-gray-800 py-1 px-2 rounded text-center text-gray-400 font-bold text-[11px]">Hiệu suất bình thường</div>';
+        }
+
+        if (isMaxProfit) {
+            badgeHtml += '<div class="bg-amber-955/40 border border-amber-500/50 py-1 px-2 rounded text-center text-amber-300 font-black text-[11px] mt-1"><i class="fa-solid fa-fire mr-1"></i> LỜI NHIỀU NHẤT</div>';
+        }
+
+        return badgeHtml;
+    }
+
+    // 3. Render kết quả Thái Hư
     if (th) {
         let lblTHSummary = document.getElementById('lbl-thaihu-header-summary');
         if (lblTHSummary) {
@@ -349,18 +390,15 @@ function runActivitiesComparisonCalculation() {
             badgeMax2.innerText = th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l: ' + nlM2Full + ' NL) | ' + th.max3Count + ' Max 3 (' + th.max3Count + 'l free: ' + nlM3Free + ' NL) ➔ ' + totalMax2Only + ' NL';
         }
 
-        renderThaiHuResultCard(th, isProfitLossMode);
+        renderThaiHuResultCard(th, isProfitLossMode, generateEvaluationBadges('th'));
     }
 
-    // 2. TÍNH VÀ ĐỔ DỮ LIỆU THƯƠNG NHÂN & TÀNG KIẾM
-    let mc = calculateMerchantDirectData();
-    renderMerchantResultCard(mc);
-
-    let tk = calculateTangKiemDirectData();
-    renderTangKiemResultCard(tk, isProfitLossMode);
+    // 4. Render kết quả Thương Nhân & Tàng Kiếm kèm huy hiệu động
+    renderMerchantResultCard(mc, generateEvaluationBadges('mc'));
+    renderTangKiemResultCard(tk, isProfitLossMode, generateEvaluationBadges('tk'));
 }
 
-function renderThaiHuResultCard(th, isProfitLossMode) {
+function renderThaiHuResultCard(th, isProfitLossMode, badgesHtml) {
     let box = document.getElementById('result-box-thai-hu');
     if (!box) return;
 
@@ -406,7 +444,7 @@ function renderThaiHuResultCard(th, isProfitLossMode) {
             'Tổng Nguyên Liệu: ' + th.totalMaterials.toLocaleString('vi-VN') + ' NL (~' + th.matRevenueGold.toFixed(1) + 'v)' +
         '</div>' +
 
-        '<div class="grid grid-cols-2 gap-1.5 pt-0.5 font-mono text-xs">' +
+        '<div class="grid grid-cols-2 gap-1.5 pt-0.5 font-mono text-xs mb-1">' +
             '<div class="bg-gray-900 border border-gray-800 p-1.5 rounded text-center">' +
                 '<span class="text-[9.5px] text-gray-400 block">Vàng/Giờ:</span>' +
                 '<strong class="' + goldPerHourColor + ' font-black text-[11px]">' + signGoldHour + th.goldPerHour.toFixed(1) + 'v/h</strong>' +
@@ -415,10 +453,11 @@ function renderThaiHuResultCard(th, isProfitLossMode) {
                 '<span class="text-[9.5px] text-gray-400 block">Tiền/Giờ:</span>' +
                 '<strong class="' + vndPerHourColor + ' font-black text-[11px]">' + signVndHour + Math.round(th.vndPerHour).toLocaleString('vi-VN') + ' đ/h</strong>' +
             '</div>' +
-        '</div>';
+        '</div>' +
+        (badgesHtml || '');
 }
 
-function renderMerchantResultCard(mc) {
+function renderMerchantResultCard(mc, badgesHtml) {
     let box = document.getElementById('result-box-merchant');
     if (!box || !mc) return;
 
@@ -443,7 +482,7 @@ function renderMerchantResultCard(mc) {
             '<strong class="text-cyan-300">' + mc.speedAccPerHour.toFixed(1) + ' acc/h</strong>' +
         '</div>' +
 
-        '<div class="grid grid-cols-2 gap-1.5 pt-0.5 font-mono text-xs">' +
+        '<div class="grid grid-cols-2 gap-1.5 pt-0.5 font-mono text-xs mb-1">' +
             '<div class="bg-gray-900 border border-gray-800 p-1.5 rounded text-center">' +
                 '<span class="text-[9.5px] text-gray-400 block">Vàng/Giờ:</span>' +
                 '<strong class="text-emerald-400 font-black text-[11px]">+' + mc.goldPerHour.toFixed(1) + 'v/h</strong>' +
@@ -453,13 +492,10 @@ function renderMerchantResultCard(mc) {
                 '<strong class="text-emerald-400 font-black text-[11px]">+' + Math.round(mc.vndPerHour).toLocaleString('vi-VN') + ' đ/h</strong>' +
             '</div>' +
         '</div>' +
-
-        '<div class="bg-emerald-950/40 border border-emerald-500/40 py-1 px-2 rounded text-center text-emerald-400 font-black text-[11px]">' +
-            '<i class="fa-solid fa-bolt mr-1"></i> HIỆU SUẤT TỐT NHẤT (Top 1 Tốc Độ)' +
-        '</div>';
+        (badgesHtml || '');
 }
 
-function renderTangKiemResultCard(tk, isProfitLossMode) {
+function renderTangKiemResultCard(tk, isProfitLossMode, badgesHtml) {
     let box = document.getElementById('result-box-tang-kiem');
     if (!box || !tk) return;
 
@@ -509,7 +545,7 @@ function renderTangKiemResultCard(tk, isProfitLossMode) {
             '+Đ.Trưởng: <strong class="text-cyan-300">' + tk.leadRefundGold + 'v</strong>' +
         '</div>' +
 
-        '<div class="grid grid-cols-2 gap-1.5 pt-0.5 font-mono text-xs">' +
+        '<div class="grid grid-cols-2 gap-1.5 pt-0.5 font-mono text-xs mb-1">' +
             '<div class="bg-gray-900 border border-gray-800 p-1.5 rounded text-center">' +
                 '<span class="text-[9.5px] text-gray-400 block">Vàng/Giờ:</span>' +
                 '<strong class="' + goldPerHourColor + ' font-black text-[11px]">' + signGoldHour + tk.goldPerHour.toFixed(1) + 'v/h</strong>' +
@@ -519,10 +555,7 @@ function renderTangKiemResultCard(tk, isProfitLossMode) {
                 '<strong class="' + vndPerHourColor + ' font-black text-[11px]">' + signVndHour + Math.round(tk.vndPerHour).toLocaleString('vi-VN') + ' đ/h</strong>' +
             '</div>' +
         '</div>' +
-
-        '<div class="bg-blue-950/40 border border-blue-500/40 py-1 px-2 rounded text-center text-blue-300 font-black text-[11px]">' +
-            '<i class="fa-solid fa-medal mr-1"></i> HIỆU QUẢ NHÌ (Top 2 Tốc Độ)' +
-        '</div>';
+        (badgesHtml || '');
 }
 
 window.switchToOptimizationTab = switchToOptimizationTab;
