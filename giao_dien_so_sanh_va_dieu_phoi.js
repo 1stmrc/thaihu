@@ -317,14 +317,12 @@ function runActivitiesComparisonCalculation() {
     }
 
     // 1. TÍNH VÀ CẬP NHẬT ẢI THÁI HƯ
-    let th = typeof calculateThaiHuComparison === 'function' ? calculateThaiHuComparison() : null;
-    if (th) {
         let lblTHSummary = document.getElementById('lbl-thaihu-header-summary');
         if (lblTHSummary) {
             let h = Math.floor(th.totalMins / 60);
             let m = Math.round(th.totalMins % 60);
-            let timeStr = h !== 0 ? `\({h} giờ\){m} phút` : `${m} phút`;
-            lblTHSummary.innerText = `(\({th.thaihuTeams} Team ~\){timeStr})`;
+            let timeStr = h !== 0 ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
+            lblTHSummary.innerText = '(' + th.thaihuTeams + ' Team ~ ' + timeStr + ')';
         }
 
         // Cập nhật nhãn lựa chọn hiển thị rõ: Số acc, số lượt và số lượng nguyên liệu
@@ -333,7 +331,7 @@ function runActivitiesComparisonCalculation() {
             let nlM2Str = (th.max2Count * 72).toLocaleString('vi-VN');
             let nlM3Str = (th.max3Count * 120).toLocaleString('vi-VN');
             let totalNLStr = ((th.max2Count * 72) + (th.max3Count * 120)).toLocaleString('vi-VN');
-            badgeFull.innerText = `\({th.max2Count} Max 2 (\){th.max2Count * 2}l:\({nlM2Str} NL) |\){th.max3Count} Max 3 (\({th.max3Count * 3}l:\){nlM3Str} NL) ➔${totalNLStr} NL`;
+            badgeFull.innerText = th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l: ' + nlM2Str + ' NL) | ' + th.max3Count + ' Max 3 (' + (th.max3Count * 3) + 'l: ' + nlM3Str + ' NL) ➔ ' + totalNLStr + ' NL';
         }
 
         let badgeMax2 = document.getElementById('badge-thaihu-mode-max2');
@@ -341,7 +339,7 @@ function runActivitiesComparisonCalculation() {
             let nlM2Str = (th.max2Count * 72).toLocaleString('vi-VN');
             let nlM3FreeStr = (th.max3Count * 24).toLocaleString('vi-VN');
             let totalNLStr = ((th.max2Count * 72) + (th.max3Count * 24)).toLocaleString('vi-VN');
-            badgeMax2.innerText = `\({th.max2Count} Max 2 (\){th.max2Count * 2}l:\({nlM2Str} NL) |\){th.max3Count} Max 3 (\({th.max3Count}l free:\){nlM3FreeStr} NL) ➔${totalNLStr} NL`;
+            badgeMax2.innerText = th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l: ' + nlM2Str + ' NL) | ' + th.max3Count + ' Max 3 (' + th.max3Count + 'l free: ' + nlM3FreeStr + ' NL) ➔ ' + totalNLStr + ' NL';
         }
 
         renderThaiHuResultCard(th, isProfitLossMode);
