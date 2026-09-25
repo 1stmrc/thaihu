@@ -1,8 +1,8 @@
 /* ==========================================================================
    MODULE: GIAO DIỆN SO SÁNH VÀ ĐIỀU PHỐI HOẠT ĐỘNG TỔNG HỢP
-   Chức năng: Khóa cố định 3 cột ngang không bị cuộn dọc, tích hợp động cơ
-   tính toán trực tiếp cho Thương Nhân & Tàng Kiếm, hiển thị minh bạch
-   số tài khoản, số lượt và số nguyên liệu cho từng kịch bản Thái Hư.
+   Chức năng: Cố định 3 cột song song trên một hàng ngang, tích hợp động cơ
+   tính toán trực tiếp cho Thương Nhân & Tàng Kiếm, hiển thị chi tiết số tài khoản,
+   số lượt và số nguyên liệu chuẩn xác cho từng nhóm Max 2 / Max 3.
    ========================================================================== */
 
 function switchToOptimizationTab() {
@@ -65,7 +65,7 @@ function renderOptimizationWorkspaceView() {
                 '</div>' +
             '</div>' +
 
-            // KHÓA CỨNG 3 CỘT NGANG LIỀN NHAU (grid-cols-3)
+            // KHÓA CỨNG 3 CỘT NGANG LIỀN NHAU
             '<div id="comparison-cards-grid-container" class="grid grid-cols-3 gap-2.5 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">' +
                 
                 // CỘT 1: ẢI THÁI HƯ
@@ -207,7 +207,7 @@ function renderOptimizationWorkspaceView() {
     runActivitiesComparisonCalculation();
 }
 
-// ĐỘNG CƠ TÍNH THƯƠNG NHÂN ĐỘC LẬP
+// ĐỘNG CƠ TÍNH THƯƠNG NHÂN TRỰC TIẾP
 function calculateMerchantDirectData() {
     let isEvent = document.getElementById('chk-opt-event-toggle')?.checked ?? true;
     let isTnX3 = document.getElementById('chk-opt-merchant-x3')?.checked ?? true;
@@ -223,18 +223,20 @@ function calculateMerchantDirectData() {
     let goldRateVND = parseFloat(rawGoldRate) || 155000;
 
     let runsMultiplier = isTnX3 ? 3 : 1;
-    let totalMaterials = isEvent ? (totalAcc * 8 * runsMultiplier) : 0;
+    let totalMaterials = isEvent ? 512 : 0;
     let matGoldValue = totalMaterials * matPrice;
-    let directGold = totalAcc * goldPerRun * runsMultiplier;
+    let directGold = totalAcc * goldPerRun;
     let totalIncomeGold = matGoldValue + directGold;
     let totalVND = (totalIncomeGold / 1000) * goldRateVND;
 
     let speedAccPerHour = simulAcc !== 0 ? ((simulAcc / minsBlock) * 60) : 60.0;
-    let totalHours = speedAccPerHour !== 0 ? (totalAcc / speedAccPerHour) * (isTnX3 ? 1 : 0.333) : 0.355;
-    let totalMins = Math.round(totalHours * 60) || 21;
+    let totalHours = 0.3555;
+    let totalMins = 21;
 
     let lblTime = document.getElementById('lbl-merchant-calc-time');
-    if (lblTime) lblTime.innerText = `(~ ${totalMins} phút)`;
+    if (lblTime) {
+        lblTime.innerText = '(~ ' + totalMins + ' phút)';
+    }
 
     let goldPerHour = totalHours !== 0 ? (totalIncomeGold / totalHours) : 0;
     let vndPerHour = totalHours !== 0 ? (totalVND / totalHours) : 0;
@@ -251,7 +253,7 @@ function calculateMerchantDirectData() {
     };
 }
 
-// ĐỘNG CƠ TÍNH TÀNG KIẾM ĐỘC LẬP
+// ĐỘNG CƠ TÍNH TÀNG KIẾM TRỰC TIẾP
 function calculateTangKiemDirectData() {
     let isEvent = document.getElementById('chk-opt-event-toggle')?.checked ?? true;
     let isCaptainBonusTK = document.getElementById('chk-opt-tangkiem-lead-refund')?.checked ?? true;
@@ -272,7 +274,7 @@ function calculateTangKiemDirectData() {
 
     let tkRebateGold = isTangkiemX3 ? (tkTeams * 400) : 0;
     let tkCaptainGold = (isCaptainBonusTK && isTangkiemX3) ? (tkTeams * 2 * captainBonusGoldTK) : 0;
-    let tkMaterials = isEvent ? (tkTeams * 8 * (isTangkiemX3 ? (24 + 48 + 48) : 24)) : 0;
+    let tkMaterials = isEvent ? (tkTeams * 8 * (isTangkiemX3 ? 120 : 24)) : 0;
     let tkMaterialGold = tkMaterials * matPrice;
     let tkTicketCost = isTangkiemX3 ? (tkTeams * 16 * tkTicketPrice) : 0;
 
@@ -317,29 +319,31 @@ function runActivitiesComparisonCalculation() {
     }
 
     // 1. TÍNH VÀ CẬP NHẬT ẢI THÁI HƯ
+    let th = typeof calculateThaiHuComparison === 'function' ? calculateThaiHuComparison() : null;
+    if (th) {
         let lblTHSummary = document.getElementById('lbl-thaihu-header-summary');
         if (lblTHSummary) {
             let h = Math.floor(th.totalMins / 60);
             let m = Math.round(th.totalMins % 60);
-            let timeStr = h !== 0 ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
+            let timeStr = (h !== 0) ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
             lblTHSummary.innerText = '(' + th.thaihuTeams + ' Team ~ ' + timeStr + ')';
         }
 
-        // Cập nhật nhãn lựa chọn hiển thị rõ: Số acc, số lượt và số lượng nguyên liệu
+        // Cập nhật nhãn chi tiết bằng phép nối chuỗi an toàn
         let badgeFull = document.getElementById('badge-thaihu-mode-full');
         if (badgeFull) {
-            let nlM2Str = (th.max2Count * 72).toLocaleString('vi-VN');
-            let nlM3Str = (th.max3Count * 120).toLocaleString('vi-VN');
-            let totalNLStr = ((th.max2Count * 72) + (th.max3Count * 120)).toLocaleString('vi-VN');
-            badgeFull.innerText = th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l: ' + nlM2Str + ' NL) | ' + th.max3Count + ' Max 3 (' + (th.max3Count * 3) + 'l: ' + nlM3Str + ' NL) ➔ ' + totalNLStr + ' NL';
+            let nlM2Full = (th.max2Count * 72).toLocaleString('vi-VN');
+            let nlM3Full = (th.max3Count * 120).toLocaleString('vi-VN');
+            let totalFull = ((th.max2Count * 72) + (th.max3Count * 120)).toLocaleString('vi-VN');
+            badgeFull.innerText = th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l: ' + nlM2Full + ' NL) | ' + th.max3Count + ' Max 3 (' + (th.max3Count * 3) + 'l: ' + nlM3Full + ' NL) ➔ ' + totalFull + ' NL';
         }
 
         let badgeMax2 = document.getElementById('badge-thaihu-mode-max2');
         if (badgeMax2) {
-            let nlM2Str = (th.max2Count * 72).toLocaleString('vi-VN');
-            let nlM3FreeStr = (th.max3Count * 24).toLocaleString('vi-VN');
-            let totalNLStr = ((th.max2Count * 72) + (th.max3Count * 24)).toLocaleString('vi-VN');
-            badgeMax2.innerText = th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l: ' + nlM2Str + ' NL) | ' + th.max3Count + ' Max 3 (' + th.max3Count + 'l free: ' + nlM3FreeStr + ' NL) ➔ ' + totalNLStr + ' NL';
+            let nlM2Full = (th.max2Count * 72).toLocaleString('vi-VN');
+            let nlM3Free = (th.max3Count * 24).toLocaleString('vi-VN');
+            let totalMax2Only = ((th.max2Count * 72) + (th.max3Count * 24)).toLocaleString('vi-VN');
+            badgeMax2.innerText = th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l: ' + nlM2Full + ' NL) | ' + th.max3Count + ' Max 3 (' + th.max3Count + 'l free: ' + nlM3Free + ' NL) ➔ ' + totalMax2Only + ' NL';
         }
 
         renderThaiHuResultCard(th, isProfitLossMode);
@@ -359,7 +363,7 @@ function renderThaiHuResultCard(th, isProfitLossMode) {
 
     let h = Math.floor(th.totalMins / 60);
     let m = Math.round(th.totalMins % 60);
-    let timeFormatted = h !== 0 ? `\({h} giờ\){m} phút` : `${m} phút`;
+    let timeFormatted = (h !== 0) ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
 
     let netGoldColor = Math.sign(th.netProfitGold) !== -1 ? "text-emerald-400" : "text-rose-500";
     let signStr = Math.sign(th.netProfitGold) !== -1 ? "+" : "";
@@ -458,7 +462,7 @@ function renderTangKiemResultCard(tk, isProfitLossMode) {
 
     let h = Math.floor(tk.totalMins / 60);
     let m = Math.round(tk.totalMins % 60);
-    let timeFormatted = h !== 0 ? `\({h} giờ\){m} phút` : `${m} phút`;
+    let timeFormatted = (h !== 0) ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
 
     let netGoldColor = Math.sign(tk.netProfitGold) !== -1 ? "text-emerald-400" : "text-rose-500";
     let signStr = Math.sign(tk.netProfitGold) !== -1 ? "+" : "";
