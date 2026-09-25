@@ -1,6 +1,6 @@
 /* ==========================================================================
    MODULE: QUẢN LÝ NHẬT KÝ CẬP NHẬT (CHANGELOG)
-   Chức năng: Quản lý hiển thị lịch sử thay đổi phiên bản, đồng bộ mở/đóng modal.
+   Chức năng: Quản lý hiển thị lịch sử thay đổi phiên bản, gắn trực tiếp vào DOM.
    ========================================================================== */
 
 const CHANGELOG_DATA = [
@@ -26,15 +26,20 @@ const CHANGELOG_DATA = [
     }
 ];
 
-// Hàm khởi tạo và dựng sẵn khung modal vào body
+// Hàm tạo và dựng trực tiếp Popup lên giao diện
 function renderChangelogCardModal() {
+    let card = document.getElementById('floating-changelog-card');
+    if (card) return card;
+
     let holder = document.getElementById('injection-changelog-card-holder');
     if (!holder) {
         holder = document.createElement('div');
         holder.id = 'injection-changelog-card-holder';
-        holder.className = "fixed bottom-16 right-4 z-50 select-none";
         document.body.appendChild(holder);
     }
+    
+    // Đặt vị trí cố định nổi ngay trên cụm nút (góc dưới bên phải, cách đáy 65px)
+    holder.className = "fixed bottom-16 right-4 z-50 select-none";
 
     let logsHtml = CHANGELOG_DATA.map(function(log) {
         let itemsHtml = log.items.map(function(item) {
@@ -69,6 +74,8 @@ function renderChangelogCardModal() {
                 logsHtml +
             '</div>' +
         '</div>';
+
+    return document.getElementById('floating-changelog-card');
 }
 
 // Hàm Bật/Tắt hiển thị bảng
@@ -76,21 +83,20 @@ function toggleFloatingChangelogCard(e) {
     if (e && e.stopPropagation) e.stopPropagation();
     let card = document.getElementById('floating-changelog-card');
     if (!card) {
-        renderChangelogCardModal();
-        card = document.getElementById('floating-changelog-card');
+        card = renderChangelogCardModal();
     }
     if (card) {
         card.classList.toggle('hidden');
     }
 }
 
-// Tự động dựng sẵn giao diện khi nạp trang
+// Khởi chạy khi DOM sẵn sàng
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", renderChangelogCardModal);
 } else {
     renderChangelogCardModal();
 }
 
-// Đăng ký hàm ra window toàn cục
+// Xuất hàm ra window toàn cục
 window.toggleFloatingChangelogCard = toggleFloatingChangelogCard;
 window.renderChangelogCardModal = renderChangelogCardModal;
