@@ -202,39 +202,47 @@ function runActivitiesComparisonCalculation() {
     }
 }
 
-// RENDER CHỌN CHẾ ĐỘ THÁI HƯ (HIỆN RÕ SỐ ACC MAX 2 / MAX 3)
+// HÀM RENDER CHỌN CHẾ ĐỘ THÁI HƯ (HIỆN RÕ SỐ ACC MAX 2 / MAX 3)
 function renderThaiHuRunModeSelectors(th) {
     let holder = document.getElementById('opt-thaihu-run-modes-container');
     if (!holder) return;
+
+    // Giữ trạng thái radio hiện tại hoặc lấy từ th.runMode
+    let currentMode = th?.runMode || "full";
+    let checkedRadio = document.querySelector('input[name="rad-thaihu-run-mode"]:checked');
+    if (checkedRadio) currentMode = checkedRadio.value;
+
+    let m2Count = th?.max2Count || 0;
+    let m3Count = th?.max3Count || 0;
 
     holder.innerHTML = 
         '<div class="space-y-1.5 text-xs font-sans">' +
             // Dòng 1: Full tất cả
             '<label class="flex items-center justify-between p-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500/50 cursor-pointer transition">' +
                 '<div class="flex items-center gap-2">' +
-                    '<input type="radio" name="rad-thaihu-run-mode" value="full" ' + (th.runMode === 'full' ? 'checked' : '') + ' onchange="runActivitiesComparisonCalculation()" class="text-purple-600 focus:ring-0 cursor-pointer w-3.5 h-3.5">' +
+                    '<input type="radio" name="rad-thaihu-run-mode" value="full" ' + (currentMode === 'full' ? 'checked' : '') + ' onchange="runActivitiesComparisonCalculation()" class="text-purple-600 focus:ring-0 cursor-pointer w-3.5 h-3.5">' +
                     '<span class="font-bold text-gray-200 text-[11px]">1. Đi full tất cả tài khoản</span>' +
                 '</div>' +
                 '<span class="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800">' +
-                    th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l) | ' + th.max3Count + ' Max 3 (' + (th.max3Count * 3) + 'l)' +
+                    m2Count + ' Max 2 (' + (m2Count * 2) + 'l) | ' + m3Count + ' Max 3 (' + (m3Count * 3) + 'l)' +
                 '</span>' +
             '</label>' +
 
             // Dòng 2: Chỉ full Max 2
             '<label class="flex items-center justify-between p-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500/50 cursor-pointer transition">' +
                 '<div class="flex items-center gap-2">' +
-                    '<input type="radio" name="rad-thaihu-run-mode" value="max2_only" ' + (th.runMode === 'max2_only' ? 'checked' : '') + ' onchange="runActivitiesComparisonCalculation()" class="text-purple-600 focus:ring-0 cursor-pointer w-3.5 h-3.5">' +
+                    '<input type="radio" name="rad-thaihu-run-mode" value="max2_only" ' + (currentMode === 'max2_only' ? 'checked' : '') + ' onchange="runActivitiesComparisonCalculation()" class="text-purple-600 focus:ring-0 cursor-pointer w-3.5 h-3.5">' +
                     '<span class="font-bold text-gray-200 text-[11px]">2. Chỉ đi full TK max 2 (Max 3 đi lượt 1)</span>' +
                 '</div>' +
                 '<span class="text-[10px] font-mono text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800">' +
-                    th.max2Count + ' Max 2 (' + (th.max2Count * 2) + 'l) | ' + th.max3Count + ' Max 3 (' + th.max3Count + 'l free)' +
+                    m2Count + ' Max 2 (' + (m2Count * 2) + 'l) | ' + m3Count + ' Max 3 (' + m3Count + 'l free)' +
                 '</span>' +
             '</label>' +
 
             // Dòng 3: Nhập thủ công
             '<label class="flex items-center justify-between p-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500/50 cursor-pointer transition">' +
                 '<div class="flex items-center gap-2">' +
-                    '<input type="radio" name="rad-thaihu-run-mode" value="manual" ' + (th.runMode === 'manual' ? 'checked' : '') + ' onchange="runActivitiesComparisonCalculation()" class="text-purple-600 focus:ring-0 cursor-pointer w-3.5 h-3.5">' +
+                    '<input type="radio" name="rad-thaihu-run-mode" value="manual" ' + (currentMode === 'manual' ? 'checked' : '') + ' onchange="runActivitiesComparisonCalculation()" class="text-purple-600 focus:ring-0 cursor-pointer w-3.5 h-3.5">' +
                     '<span class="font-bold text-gray-200 text-[11px]">3. Nhập thủ công số lượng team</span>' +
                 '</div>' +
                 '<span class="text-[10px] font-mono text-gray-400 bg-gray-950 px-2 py-0.5 rounded border border-gray-800">' +
