@@ -1,7 +1,8 @@
 /* ==========================================================================
    MODULE: ĐỘNG CƠ TÍNH TOÁN ẢI THÁI HƯ (THAI HU ENGINE)
-   Chức năng: Quét chi tiết tài khoản Max 2, Max 3; xử lý số thực có dấu phẩy,
-   tính lượt chạy, chi phí vé, doanh thu nguyên liệu và hoàn vàng.
+   Chức năng: Quét chi tiết tài khoản Max 2, Max 3; tính toán số lượt đi,
+   bóc tách chi tiết số lượng nguyên liệu của từng nhóm (Max 2, Max 3),
+   tính chi phí vé và lợi nhuận ròng.
    ========================================================================== */
 
 function calculateThaiHuComparison() {
@@ -10,7 +11,7 @@ function calculateThaiHuComparison() {
     let isFreeTickets = document.getElementById('chk-opt-thaihu-free-tickets')?.checked ?? false;
     let isAddDeo = document.getElementById('chk-opt-thaihu-add-deo')?.checked ?? false;
 
-    // Xử lý giá nguyên liệu (chuyển dấu phẩy thành dấu chấm nếu người dùng gõ 0,15)
+    // Đọc giá nguyên liệu & vé từ Topbar (xử lý cả dấu phẩy)
     let rawMatPrice = document.getElementById('input-material-price')?.value || "0.15";
     let matPrice = parseFloat(String(rawMatPrice).replace(',', '.')) || 0.15;
 
@@ -37,11 +38,10 @@ function calculateThaiHuComparison() {
         });
     }
 
-    // Dự phòng chuẩn nếu DB chưa nạp
     let totalAcc = max2Count + max3Count;
     if (totalAcc === 0) {
-        max2Count = 32;
-        max3Count = 32;
+        max2Count = 26;
+        max3Count = 38;
         totalAcc = 64;
     }
 
@@ -53,44 +53,32 @@ function calculateThaiHuComparison() {
     let totalRunsTH = 0;
     let detailMax2Runs = 0;
     let detailMax3Runs = 0;
-
-    if (runMode === 'manual') {
-        thaihuTeams = parseInt(document.getElementById('input-opt-thaihu-teams')?.value) || 8;
-        totalRunsTH = thaihuTeams * 8;
-    } else if (runMode === 'max2_only') {
-        detailMax2Runs = max2Count * 2;
-        detailMax3Runs = max3Count * 1;
-        totalRunsTH = detailMax2Runs + detailMax3Runs;
-        thaihuTeams = Math.ceil(totalRunsTH / 8) || 8;
-    } else {
-        detailMax2Runs = max2Count * 2;
-        detailMax3Runs = max3Count * 3;
-        totalRunsTH = detailMax2Runs + detailMax3Runs;
-        thaihuTeams = Math.ceil(totalRunsTH / 8) || 8;
-    }
-
-    let minsPerTeam = parseFloat(document.getElementById('input-opt-thaihu-mins-per-team')?.value) || 15;
-    let totalMins = (thaihuTeams * minsPerTeam) + (thaihuTeams > 1 ? (thaihuTeams - 1) * 6 : 0);
-    let totalHours = totalMins / 60;
-
-    // Tính nguyên liệu (Có sự kiện: L1=24, L2=48, L3=48; Không sự kiện chia đôi)
+    let detailMax2NL = 0;
+    let detailMax3NL = 0;
     let totalMaterials = 0;
     let totalTicketCost = 0;
     let totalRebateGold = 0;
 
     if (runMode === 'manual') {
-        let accPerTeam = thaihuTeams * 8;
-        totalMaterials = isEvent ? (accPerTeam * 120) : (accPerTeam * 60);
+        thaihuTeams = parseInt(document.getElementById('input-opt-thaihu-teams')?.value) || 8;
+        totalRunsTH = thaihuTeams * 8;
+        totalMaterials = isEvent ? (totalRunsTH * 120) : (totalRunsTH * 60);
         if (!isFreeTickets) {
-            totalTicketCost = accPerTeam * (ticketPriceTH * 2);
+            totalTicketCost = totalRunsTH * (ticketPriceTH * 2);
         }
         if (!isExcludeRefund) {
-            totalRebateGold = accPerTeam * rebateGoldTH;
+            totalRebateGold = totalRunsTH * rebateGoldTH;
         }
     } else if (runMode === 'max2_only') {
-        let nlMax2 = isEvent ? (max2Count * 72) : (max2Count * 36);
-        let nlMax3 = isEvent ? (max3Count * 24) : (max3Count * 12);
-        totalMaterials = nlMax2 + nlMax3;
+        // Dòng 2: Max 2 đi 2 lượt (72 NL/acc), Max 3 đi 1 lượt Free (24 NL/acc)
+        detailMax2Runs = max2Count * 2;
+        detailMax3Runs = max3Count * 1;
+        totalRunsTH = detailMax2Runs + detailMax3Runs;
+        thaihuTeams = Math.ceil(totalRunsTH / 8) || 8;
+
+        detailMax2NL = isEvent ? (max2Count * 72) : (max2Count * 36);
+        detailMax3NL = isEvent ? (max3Count * 24) : (max3Count * 12);
+        totalMaterials = detailMax2NL + detailMax3NL;
 
         if (!isFreeTickets) {
             totalTicketCost = max2Count * ticketPriceTH;
@@ -99,9 +87,15 @@ function calculateThaiHuComparison() {
             totalRebateGold = max2Count * rebateGoldTH;
         }
     } else {
-        let nlMax2 = isEvent ? (max2Count * 72) : (max2Count * 36);
-        let nlMax3 = isEvent ? (max3Count * 120) : (max3Count * 60);
-        totalMaterials = nlMax2 + nlMax3;
+        // Dòng 1: Full tất cả (Max 2 đi 2 lượt: 72 NL/acc; Max 3 đi 3 lượt: 120 NL/acc)
+        detailMax2Runs = max2Count * 2;
+        detailMax3Runs = max3Count * 3;
+        totalRunsTH = detailMax2Runs + detailMax3Runs;
+        thaihuTeams = Math.ceil(totalRunsTH / 8) || 8;
+
+        detailMax2NL = isEvent ? (max2Count * 72) : (max2Count * 36);
+        detailMax3NL = isEvent ? (max3Count * 120) : (max3Count * 60);
+        totalMaterials = detailMax2NL + detailMax3NL;
 
         if (!isFreeTickets) {
             totalTicketCost = (max2Count * ticketPriceTH) + (max3Count * ticketPriceTH * 2);
@@ -111,13 +105,17 @@ function calculateThaiHuComparison() {
         }
     }
 
+    let minsPerTeam = parseFloat(document.getElementById('input-opt-thaihu-mins-per-team')?.value) || 15;
+    let totalMins = (thaihuTeams * minsPerTeam) + (thaihuTeams !== 1 ? (thaihuTeams - 1) * 6 : 0);
+    let totalHours = totalMins / 60;
+
     let matRevenueGold = totalMaterials * matPrice;
     let totalIncomeGold = matRevenueGold + totalRebateGold;
     let netProfitGold = totalIncomeGold - totalTicketCost;
     let netProfitVND = (netProfitGold / 1000) * goldRateVND;
 
-    let goldPerHour = totalHours > 0 ? (netProfitGold / totalHours) : 0;
-    let vndPerHour = totalHours > 0 ? (netProfitVND / totalHours) : 0;
+    let goldPerHour = totalHours !== 0 ? (netProfitGold / totalHours) : 0;
+    let vndPerHour = totalHours !== 0 ? (netProfitVND / totalHours) : 0;
 
     return {
         runMode: runMode,
@@ -126,6 +124,8 @@ function calculateThaiHuComparison() {
         totalAcc: totalAcc,
         detailMax2Runs: detailMax2Runs,
         detailMax3Runs: detailMax3Runs,
+        detailMax2NL: detailMax2NL,
+        detailMax3NL: detailMax3NL,
         totalRunsTH: totalRunsTH,
         thaihuTeams: thaihuTeams,
         totalMins: totalMins,
