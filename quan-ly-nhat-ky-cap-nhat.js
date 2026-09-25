@@ -1,10 +1,11 @@
 /* ==========================================================================
    MODULE: QUẢN LÝ NHẬT KÝ CẬP NHẬT (CHANGELOG)
    Chức năng: Tự động gom nhóm theo ngày, hiển thị chi tiết mốc giờ từng giây,
-   phân trang từng ngày mượt mà và tự sinh modal độc lập vào body.
+   tự tính toán độ lệch thời gian (ví dụ: 30p 20s trước), phân trang từng ngày
+   và tự sinh modal độc lập vào body.
    ========================================================================== */
 
-// Dữ liệu nhật ký cập nhật chi tiết đến từng giây (Ghi nhận theo thứ tự thời gian)
+// Dữ liệu nhật ký cập nhật chi tiết đến từng giây (Múi giờ chuẩn Việt Nam)
 const CHANGELOG_DATA = [
     {
         version: "v2.1.2",
@@ -49,11 +50,49 @@ const CHANGELOG_DATA = [
 // Biến lưu trang ngày đang xem (0 = Ngày mới nhất)
 let currentChangelogDayIndex = 0;
 
+// Hàm tính khoảng thời gian trôi qua so với hiện tại (VD: 30p 20s trước)
+function formatTimeAgoFromTimestamp(timestampStr) {
+    try {
+        // Chuỗi đầu vào dạng: "09:15:20 25/09/2026"
+        let parts = timestampStr.trim().split(' ');
+        if (parts.length !== 2) return '';
+
+        let timeParts = parts[0].split(':').map(Number);
+        let dateParts = parts[1].split('/').map(Number);
+
+        let targetDate = new Date(dateParts[2], dateParts[1] - 1, dateParts[0], timeParts[0], timeParts[1], timeParts[2]);
+        let now = new Date();
+        let diffSecs = Math.floor((now.getTime() - targetDate.getTime()) / 1000);
+
+        if (diffSecs < 5) return 'vừa xong';
+        if (diffSecs < 60) return diffSecs + 's trước';
+
+        let mins = Math.floor(diffSecs / 60);
+        let secs = diffSecs % 60;
+
+        if (mins < 60) {
+            return secs > 0 ? (mins + 'p ' + secs + 's trước') : (mins + 'p trước');
+        }
+
+        let hours = Math.floor(mins / 60);
+        let remainMins = mins % 60;
+
+        if (hours < 24) {
+            return remainMins > 0 ? (hours + 'h ' + remainMins + 'p trước') : (hours + 'h trước');
+        }
+
+        let days = Math.floor(hours / 24);
+        let remainHours = hours % 24;
+        return remainHours > 0 ? (days + ' ngày ' + remainHours + 'h trước') : (days + ' ngày trước');
+    } catch (e) {
+        return '';
+    }
+}
+
 // Hàm gom dữ liệu theo từng ngày (Date grouping)
 function getGroupedChangelogByDate() {
     let groups = {};
     CHANGELOG_DATA.forEach(function(item) {
-        // Tách chuỗi ngày từ timestamp: "HH:mm:ss DD/MM/YYYY" -> "DD/MM/YYYY"
         let parts = item.timestamp.split(' ');
         let dateKey = parts.length > 1 ? parts[1] : parts[0];
         if (!groups[dateKey]) {
@@ -106,15 +145,21 @@ function renderChangelogContentBody() {
             return '<li class="text-gray-300 leading-relaxed">' + it + '</li>';
         }).join('');
 
+        let timeAgoStr = formatTimeAgoFromTimestamp(log.timestamp);
+        let timeAgoBadge = timeAgoStr ? ('<span class="text-[10px] text-cyan-300 bg-cyan-950/80 border border-cyan-500/40 px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ml-1.5">' + timeAgoStr + '</span>') : '';
+
         return (
-            '<div class="mb-3.5 bg-gray-950/70 border border-gray-800 rounded-xl p-3 shadow-inner">' +
+            '<div class="mb-3.5 bg-gray-955/70 border border-gray-800 rounded-xl p-3 shadow-inner">' +
                 '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2 border-b border-gray-800/80 pb-2">' +
                     '<span class="text-cyan-400 font-bold text-xs flex items-center gap-1.5">' +
                         '<i class="fa-solid fa-code-commit text-[11px] text-cyan-500"></i>' + log.version + ' - ' + log.title +
                     '</span>' +
-                    '<span class="text-[10px] text-amber-300 font-mono bg-gray-900 border border-amber-500/30 px-2 py-0.5 rounded shrink-0 self-start sm:self-auto">' +
-                        '<i class="fa-regular fa-clock text-[9px] mr-1"></i>' + log.timestamp +
-                    '</span>' +
+                    '<div class="flex items-center self-start sm:self-auto">' +
+                        '<span class="text-[10px] text-amber-300 font-mono bg-gray-900 border border-amber-500/30 px-2 py-0.5 rounded shrink-0">' +
+                            '<i class="fa-regular fa-clock text-[9px] mr-1"></i>' + log.timestamp +
+                        '</span>' +
+                        timeAgoBadge +
+                    '</div>' +
                 '</div>' +
                 '<ul class="list-disc list-inside text-[11px] space-y-1 pl-1">' +
                     itemsHtml +
@@ -131,7 +176,7 @@ function renderChangelogContentBody() {
         let hasNext = currentChangelogDayIndex < grouped.length - 1;
 
         paginationContainer.innerHTML = 
-            '<div class="flex items-center justify-between w-full bg-gray-950 px-3 py-2 rounded-xl border border-gray-800 text-xs font-sans">' +
+            '<div class="flex items-center justify-between w-full bg-gray-955 px-3 py-2 rounded-xl border border-gray-800 text-xs font-sans">' +
                 '<button onclick="changeChangelogDayPage(-1)" ' + (!hasPrev ? 'disabled' : '') + ' class="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-cyan-400 font-bold disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-1 cursor-pointer">' +
                     '<i class="fa-solid fa-chevron-left text-[10px]"></i> Ngày Mới Hơn' +
                 '</button>' +
@@ -185,7 +230,7 @@ function toggleFloatingChangelogCard(e) {
             '<div id="thaihu-changelog-content-zone" class="overflow-y-auto pr-1 space-y-2 flex-1 custom-scrollbar text-left max-h-[55vh]"></div>' +
 
             '<div class="pt-2.5 mt-2 border-t border-gray-800 flex justify-between items-center text-[10px] text-gray-500 font-mono shrink-0">' +
-                '<span>Hệ thống Thái Hư V2 • Cập nhật thời gian thực</span>' +
+                '<span>Hệ thống Thái Hư V2 • Tự động tính thời gian tương đối</span>' +
                 '<button onclick="document.getElementById(\'thaihu-changelog-modal-overlay\').remove()" class="bg-gray-800 hover:bg-gray-700 text-cyan-300 px-3.5 py-1 rounded-lg border border-gray-700 text-xs font-bold cursor-pointer transition shadow">Đóng</button>' +
             '</div>' +
         '</div>';
