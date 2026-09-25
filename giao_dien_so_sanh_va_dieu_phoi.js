@@ -1,6 +1,6 @@
 /* ==========================================================================
    MODULE: GIAO DIỆN SO SÁNH VÀ ĐIỀU PHỐI HOẠT ĐỘNG TỔNG HỢP
-   Chức năng: Điều phối chuyển tab So Sánh Tối Ưu, ẩn thanh sub-navbar con,
+   Chức năng: Điều phối chuyển tab So Sánh Tối Ưu, ẩn sub-navbar con,
    hiển thị trực quan 3 phân hệ Thái Hư - Thương Nhân - Tàng Kiếm và tính toán
    chuẩn xác số tài khoản Max 2 / Max 3 kèm nguyên liệu thời gian thực.
    ========================================================================== */
@@ -43,7 +43,6 @@ function renderOptimizationWorkspaceView() {
                    document.getElementById('main-workspace-body');
     if (!viewport) return;
 
-    // Đảm bảo thanh sub-navbar luôn ẩn khi vào tab này
     let subNavZone = document.getElementById('sub-navbar-container-zone');
     if (subNavZone) subNavZone.classList.add('hidden');
 
@@ -237,7 +236,8 @@ function runActivitiesComparisonCalculation() {
         if (lblTHSummary) {
             let h = Math.floor(th.totalMins / 60);
             let m = Math.round(th.totalMins % 60);
-            lblTHSummary.innerText = '(' + th.thaihuTeams + ' Team ~ ' + (h > 0 ? (h + ' giờ ' + m + ' phút') : (m + ' phút')) + ')';
+            let timeStr = h !== 0 ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
+            lblTHSummary.innerText = '(' + th.thaihuTeams + ' Team ~ ' + timeStr + ')';
         }
 
         let badgeFull = document.getElementById('badge-thaihu-mode-full');
@@ -271,10 +271,14 @@ function renderThaiHuResultCard(th, isProfitLossMode) {
 
     let h = Math.floor(th.totalMins / 60);
     let m = Math.round(th.totalMins % 60);
-    let timeFormatted = h > 0 ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
+    let timeFormatted = h !== 0 ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
 
-    let netGoldColor = th.netProfitGold >= 0 ? "text-emerald-400" : "text-rose-500";
-    let signStr = th.netProfitGold >= 0 ? "+" : "";
+    let netGoldColor = Math.sign(th.netProfitGold) !== -1 ? "text-emerald-400" : "text-rose-500";
+    let signStr = Math.sign(th.netProfitGold) !== -1 ? "+" : "";
+    let goldPerHourColor = Math.sign(th.goldPerHour) !== -1 ? 'text-cyan-300' : 'text-rose-400';
+    let signGoldHour = Math.sign(th.goldPerHour) !== -1 ? '+' : '';
+    let vndPerHourColor = Math.sign(th.vndPerHour) !== -1 ? 'text-emerald-400' : 'text-rose-400';
+    let signVndHour = Math.sign(th.vndPerHour) !== -1 ? '+' : '';
 
     box.innerHTML = 
         '<div class="flex items-center justify-between border-b border-gray-800 pb-2">' +
@@ -310,11 +314,11 @@ function renderThaiHuResultCard(th, isProfitLossMode) {
         '<div class="grid grid-cols-2 gap-2 pt-1 font-mono text-xs">' +
             '<div class="bg-gray-900 border border-gray-800 p-2 rounded-lg text-center">' +
                 '<span class="text-[10px] text-gray-400 block">Tốc độ Vàng/Giờ:</span>' +
-                '<strong class="' + (th.goldPerHour >= 0 ? 'text-cyan-300' : 'text-rose-400') + ' font-black">' + (th.goldPerHour >= 0 ? '+' : '') + th.goldPerHour.toFixed(1) + 'v/h</strong>' +
+                '<strong class="' + goldPerHourColor + ' font-black">' + signGoldHour + th.goldPerHour.toFixed(1) + 'v/h</strong>' +
             '</div>' +
             '<div class="bg-gray-900 border border-gray-800 p-2 rounded-lg text-center">' +
                 '<span class="text-[10px] text-gray-400 block">Tốc độ Tiền/Giờ:</span>' +
-                '<strong class="' + (th.vndPerHour >= 0 ? 'text-emerald-400' : 'text-rose-400') + ' font-black">' + (th.vndPerHour >= 0 ? '+' : '') + Math.round(th.vndPerHour).toLocaleString('vi-VN') + ' đ/h</strong>' +
+                '<strong class="' + vndPerHourColor + ' font-black">' + signVndHour + Math.round(th.vndPerHour).toLocaleString('vi-VN') + ' đ/h</strong>' +
             '</div>' +
         '</div>';
 }
@@ -376,7 +380,7 @@ function renderTangKiemResultCard(tk, isProfitLossMode) {
 
     let h = Math.floor((tk.totalMins || 145) / 60);
     let m = Math.round((tk.totalMins || 145) % 60);
-    let timeFormatted = h > 0 ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
+    let timeFormatted = h !== 0 ? (h + ' giờ ' + m + ' phút') : (m + ' phút');
 
     let profitGold = tk.netProfitGold ?? tk.tkProfitGold ?? 226.0;
     let profitVND = tk.netProfitVND ?? tk.tkProfitVND ?? 35030;
@@ -388,8 +392,12 @@ function renderTangKiemResultCard(tk, isProfitLossMode) {
     let gHour = tk.goldPerHour ?? tk.tkGoldPerHour ?? 93.5;
     let vHour = tk.vndPerHour ?? tk.tkVndPerHour ?? 14495;
 
-    let netGoldColor = profitGold >= 0 ? "text-emerald-400" : "text-rose-500";
-    let signStr = profitGold >= 0 ? "+" : "";
+    let netGoldColor = Math.sign(profitGold) !== -1 ? "text-emerald-400" : "text-rose-500";
+    let signStr = Math.sign(profitGold) !== -1 ? "+" : "";
+    let goldPerHourColor = Math.sign(gHour) !== -1 ? 'text-cyan-300' : 'text-rose-400';
+    let signGoldHour = Math.sign(gHour) !== -1 ? '+' : '';
+    let vndPerHourColor = Math.sign(vHour) !== -1 ? 'text-emerald-400' : 'text-rose-400';
+    let signVndHour = Math.sign(vHour) !== -1 ? '+' : '';
 
     box.innerHTML = 
         '<div class="flex items-center justify-between border-b border-gray-800 pb-2">' +
@@ -429,11 +437,11 @@ function renderTangKiemResultCard(tk, isProfitLossMode) {
         '<div class="grid grid-cols-2 gap-2 pt-1 font-mono text-xs">' +
             '<div class="bg-gray-900 border border-gray-800 p-2 rounded-lg text-center">' +
                 '<span class="text-[10px] text-gray-400 block">Tốc độ Vàng/Giờ:</span>' +
-                '<strong class="' + (gHour >= 0 ? 'text-cyan-300' : 'text-rose-400') + ' font-black">' + (gHour >= 0 ? '+' : '') + gHour.toFixed(1) + 'v/h</strong>' +
+                '<strong class="' + goldPerHourColor + ' font-black">' + signGoldHour + gHour.toFixed(1) + 'v/h</strong>' +
             '</div>' +
             '<div class="bg-gray-900 border border-gray-800 p-2 rounded-lg text-center">' +
                 '<span class="text-[10px] text-gray-400 block">Tốc độ Tiền/Giờ:</span>' +
-                '<strong class="' + (vHour >= 0 ? 'text-emerald-400' : 'text-rose-400') + ' font-black">' + (vHour >= 0 ? '+' : '') + Math.round(vHour).toLocaleString('vi-VN') + ' đ/h</strong>' +
+                '<strong class="' + vndPerHourColor + ' font-black">' + signVndHour + Math.round(vHour).toLocaleString('vi-VN') + ' đ/h</strong>' +
             '</div>' +
         '</div>' +
 
@@ -442,7 +450,7 @@ function renderTangKiemResultCard(tk, isProfitLossMode) {
         '</div>';
 }
 
-// 7. XUẤT ĐẦY ĐỦ TẤT CẢ CÁC BIẾN HÀM RA WINDOW TOÀN CỤC
+// 7. XUẤT ĐẦY ĐỦ CÁC HÀM RA WINDOW TOÀN CỤC
 window.switchToOptimizationTab = switchToOptimizationTab;
 window.renderOptimizationWorkspaceView = renderOptimizationWorkspaceView;
 window.injectActivitiesComparisonView = renderOptimizationWorkspaceView;
