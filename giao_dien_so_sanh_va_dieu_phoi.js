@@ -1,8 +1,7 @@
 /* ==========================================================================
    MODULE: GIAO DIỆN SO SÁNH VÀ ĐIỀU PHỐI HOẠT ĐỘNG TỔNG HỢP
-   Chức năng: Cố định 3 cột song song trên một hàng ngang, tích hợp động cơ
-   tính toán trực tiếp cho Thương Nhân & Tàng Kiếm, hiển thị chi tiết số tài khoản,
-   số lượt và số nguyên liệu chuẩn xác cho từng nhóm Max 2 / Max 3.
+   Chức năng: Cố định 3 cột ngang, tự động tính toán thời gian thực (real-time)
+   cho cả 3 hoạt động Thái Hư - Thương Nhân - Tàng Kiếm khi gõ phím (oninput).
    ========================================================================== */
 
 function switchToOptimizationTab() {
@@ -70,7 +69,7 @@ function renderOptimizationWorkspaceView() {
                 
                 // CỘT 1: ẢI THÁI HƯ
                 '<div id="card-col-thai-hu" class="flex flex-col gap-2 min-w-0">' +
-                    '<div class="bg-gray-950/80 border border-purple-500/40 rounded-xl p-2.5 shadow-lg flex flex-col gap-1.5">' +
+                    '<div class="bg-gray-955/80 border border-purple-500/40 rounded-xl p-2.5 shadow-lg flex flex-col gap-1.5">' +
                         '<div class="flex items-center justify-between text-purple-300 font-black text-xs border-b border-gray-800 pb-1">' +
                             '<span class="flex items-center gap-1.5"><i class="fa-solid fa-dharmachakra"></i> 1. ẢI THÁI HƯ</span>' +
                             '<span id="lbl-thaihu-header-summary" class="text-[10px] font-mono text-purple-400 font-bold">(Đang tính...)</span>' +
@@ -123,7 +122,7 @@ function renderOptimizationWorkspaceView() {
 
                         '<div class="flex items-center justify-between gap-1 pt-1 border-t border-gray-850">' +
                             '<span class="text-[10.5px] text-gray-400 font-bold">Thời Gian 1 Team (Phút):</span>' +
-                            '<input type="number" id="input-opt-thaihu-mins-per-team" value="15" onchange="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1.5 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
+                            '<input type="number" id="input-opt-thaihu-mins-per-team" value="15" oninput="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1.5 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
                         '</div>' +
                     '</div>' +
                     '<div id="result-box-thai-hu" class="bg-gray-955/80 border border-purple-500/40 rounded-xl p-2.5 shadow-lg flex-1 flex flex-col justify-between gap-1.5"></div>' +
@@ -141,22 +140,22 @@ function renderOptimizationWorkspaceView() {
                         '</div>' +
                         '<div class="flex items-center justify-between gap-1 pt-0.5">' +
                             '<span class="text-[10.5px] text-gray-400 font-bold">Số Vàng / 1 Lượt:</span>' +
-                            '<input type="number" step="0.1" id="input-opt-merchant-gold-per-run" value="1.3" onchange="runActivitiesComparisonCalculation()" class="w-20 bg-gray-900 border border-gray-700 rounded py-0.5 px-1.5 text-center text-xs font-bold text-amber-300 focus:outline-none">' +
+                            '<input type="number" step="0.1" id="input-opt-merchant-gold-per-run" value="1.3" oninput="runActivitiesComparisonCalculation()" class="w-20 bg-gray-900 border border-gray-700 rounded py-0.5 px-1.5 text-center text-xs font-bold text-amber-300 focus:outline-none">' +
                         '</div>' +
                         '<div class="grid grid-cols-2 gap-1.5 pt-0.5">' +
                             '<div class="flex flex-col gap-0.5">' +
                                 '<span class="text-[9.5px] text-gray-400 font-bold">Số ACC Mở (x):</span>' +
-                                '<input type="number" id="input-opt-merchant-simul-acc" value="11" onchange="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
+                                '<input type="number" id="input-opt-merchant-simul-acc" value="11" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
                             '</div>' +
                             '<div class="flex flex-col gap-0.5">' +
                                 '<span class="text-[9.5px] text-gray-400 font-bold">Thời Gian (Phút):</span>' +
-                                '<input type="number" id="input-opt-merchant-mins-block" value="11" onchange="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
+                                '<input type="number" id="input-opt-merchant-mins-block" value="11" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
                             '</div>' +
                         '</div>' +
                         '<div class="flex items-center justify-between gap-1 pt-1 border-t border-gray-850">' +
                             '<span class="text-[10.5px] text-gray-400 font-bold">Tổng Số Tài Khoản:</span>' +
                             '<div class="flex items-center gap-1">' +
-                                '<input type="number" id="input-opt-merchant-total-acc" value="64" onchange="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
+                                '<input type="number" id="input-opt-merchant-total-acc" value="64" oninput="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
                                 '<span id="lbl-merchant-calc-time" class="text-[9.5px] font-mono text-cyan-400 font-bold">(~ 21 phút)</span>' +
                             '</div>' +
                         '</div>' +
@@ -182,21 +181,21 @@ function renderOptimizationWorkspaceView() {
                         '</div>' +
                         '<div class="flex items-center justify-between gap-1 pt-0.5">' +
                             '<span class="text-[10.5px] text-gray-400 font-bold">Hoàn Đ.Trưởng (1 lần/team):</span>' +
-                            '<input type="number" id="input-opt-tangkiem-refund-lead-gold" value="25" onchange="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1.5 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
+                            '<input type="number" id="input-opt-tangkiem-refund-lead-gold" value="25" oninput="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1.5 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
                         '</div>' +
                         '<div class="grid grid-cols-2 gap-1.5 pt-0.5">' +
                             '<div class="flex flex-col gap-0.5">' +
                                 '<span class="text-[9.5px] text-gray-400 font-bold">Số Team Đi:</span>' +
-                                '<input type="number" id="input-opt-tangkiem-teams" value="8" onchange="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
+                                '<input type="number" id="input-opt-tangkiem-teams" value="8" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-white focus:outline-none">' +
                             '</div>' +
                             '<div class="flex flex-col gap-0.5">' +
                                 '<span class="text-[9.5px] text-gray-400 font-bold">Giá Vé TK (Vàng):</span>' +
-                                '<input type="number" id="input-opt-tangkiem-ticket-price" value="23" onchange="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-amber-300 focus:outline-none">' +
+                                '<input type="number" id="input-opt-tangkiem-ticket-price" value="23" oninput="runActivitiesComparisonCalculation()" class="w-full bg-gray-900 border border-gray-700 rounded py-0.5 px-1 text-center text-xs font-bold text-amber-300 focus:outline-none">' +
                             '</div>' +
                         '</div>' +
                         '<div class="flex items-center justify-between gap-1 pt-1 border-t border-gray-850">' +
                             '<span class="text-[10.5px] text-gray-400 font-bold">Thời Gian 1 Team (Phút):</span>' +
-                            '<input type="number" id="input-opt-tangkiem-mins-per-team" value="45" onchange="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1.5 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
+                            '<input type="number" id="input-opt-tangkiem-mins-per-team" value="45" oninput="runActivitiesComparisonCalculation()" class="w-16 bg-gray-900 border border-gray-700 rounded py-0.5 px-1.5 text-center text-xs font-bold text-cyan-300 focus:outline-none">' +
                         '</div>' +
                     '</div>' +
                     '<div id="result-box-tang-kiem" class="bg-gray-955 border border-cyan-500/40 rounded-xl p-2.5 shadow-lg flex-1 flex flex-col justify-between gap-1.5"></div>' +
@@ -207,7 +206,7 @@ function renderOptimizationWorkspaceView() {
     runActivitiesComparisonCalculation();
 }
 
-// ĐỘNG CƠ TÍNH THƯƠNG NHÂN TRỰC TIẾP
+// ĐỘNG CƠ TÍNH THƯƠNG NHÂN ĐỘC LẬP (ĐÃ GỠ TOÀN BỘ SỐ CHẾT)
 function calculateMerchantDirectData() {
     let isEvent = document.getElementById('chk-opt-event-toggle')?.checked ?? true;
     let isTnX3 = document.getElementById('chk-opt-merchant-x3')?.checked ?? true;
@@ -223,23 +222,28 @@ function calculateMerchantDirectData() {
     let goldRateVND = parseFloat(rawGoldRate) || 155000;
 
     let runsMultiplier = isTnX3 ? 3 : 1;
-    let totalMaterials = isEvent ? 512 : 0;
+    // Mỗi acc 1 lượt nhận 8 NL (sự kiện) -> x3 lượt nhận 24 NL
+    let totalMaterials = isEvent ? (totalAcc * 8 * runsMultiplier) : 0;
     let matGoldValue = totalMaterials * matPrice;
-    let directGold = totalAcc * goldPerRun;
+    let directGold = totalAcc * goldPerRun * runsMultiplier;
     let totalIncomeGold = matGoldValue + directGold;
     let totalVND = (totalIncomeGold / 1000) * goldRateVND;
 
-    let speedAccPerHour = simulAcc !== 0 ? ((simulAcc / minsBlock) * 60) : 60.0;
-    let totalHours = 0.3555;
-    let totalMins = 21;
+    // Tốc độ cày (acc/h)
+    let speedAccPerHour = (minsBlock !== 0) ? ((simulAcc / minsBlock) * 60) : 60.0;
+    
+    // Tính chính xác thời gian hoàn thành theo số acc đang mở và tổng số tài khoản
+    let numBatches = (simulAcc !== 0) ? Math.ceil(totalAcc / simulAcc) : 1;
+    let totalMins = Math.round(numBatches * minsBlock) || 21;
+    let totalHours = totalMins / 60;
 
     let lblTime = document.getElementById('lbl-merchant-calc-time');
     if (lblTime) {
         lblTime.innerText = '(~ ' + totalMins + ' phút)';
     }
 
-    let goldPerHour = totalHours !== 0 ? (totalIncomeGold / totalHours) : 0;
-    let vndPerHour = totalHours !== 0 ? (totalVND / totalHours) : 0;
+    let goldPerHour = (totalHours !== 0) ? (totalIncomeGold / totalHours) : 0;
+    let vndPerHour = (totalHours !== 0) ? (totalVND / totalHours) : 0;
 
     return {
         totalMins: totalMins,
@@ -253,7 +257,7 @@ function calculateMerchantDirectData() {
     };
 }
 
-// ĐỘNG CƠ TÍNH TÀNG KIẾM TRỰC TIẾP
+// ĐỘNG CƠ TÍNH TÀNG KIẾM ĐỘC LẬP
 function calculateTangKiemDirectData() {
     let isEvent = document.getElementById('chk-opt-event-toggle')?.checked ?? true;
     let isCaptainBonusTK = document.getElementById('chk-opt-tangkiem-lead-refund')?.checked ?? true;
@@ -282,8 +286,8 @@ function calculateTangKiemDirectData() {
     let tkProfitGold = tkTotalIncomeGold - tkTicketCost;
     let tkProfitVND = (tkProfitGold / 1000) * goldRateVND;
 
-    let tkGoldPerHour = tkTotalHours !== 0 ? (tkProfitGold / tkTotalHours) : 0;
-    let tkVndPerHour = tkTotalHours !== 0 ? (tkProfitVND / tkTotalHours) : 0;
+    let tkGoldPerHour = (tkTotalHours !== 0) ? (tkProfitGold / tkTotalHours) : 0;
+    let tkVndPerHour = (tkTotalHours !== 0) ? (tkProfitVND / tkTotalHours) : 0;
 
     return {
         totalMins: tkTotalMins,
@@ -329,7 +333,6 @@ function runActivitiesComparisonCalculation() {
             lblTHSummary.innerText = '(' + th.thaihuTeams + ' Team ~ ' + timeStr + ')';
         }
 
-        // Cập nhật nhãn chi tiết bằng phép nối chuỗi an toàn
         let badgeFull = document.getElementById('badge-thaihu-mode-full');
         if (badgeFull) {
             let nlM2Full = (th.max2Count * 72).toLocaleString('vi-VN');
