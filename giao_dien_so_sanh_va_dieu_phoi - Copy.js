@@ -202,12 +202,11 @@ function runActivitiesComparisonCalculation() {
     }
 }
 
-// HÀM RENDER CHỌN CHẾ ĐỘ THÁI HƯ (HIỆN RÕ SỐ ACC MAX 2 / MAX 3)
+// RENDER CHỌN CHẾ ĐỘ THÁI HƯ (HIỆN RÕ SỐ ACC MAX 2 / MAX 3)
 function renderThaiHuRunModeSelectors(th) {
     let holder = document.getElementById('opt-thaihu-run-modes-container');
     if (!holder) return;
 
-    // Giữ trạng thái radio hiện tại hoặc lấy từ th.runMode
     let currentMode = th?.runMode || "full";
     let checkedRadio = document.querySelector('input[name="rad-thaihu-run-mode"]:checked');
     if (checkedRadio) currentMode = checkedRadio.value;
