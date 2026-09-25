@@ -6,7 +6,7 @@
 const CHANGELOG_DATA = [
     {
         version: "v2.1.0",
-        date: "23/09/2026",
+        date: "25/09/2026",
         title: "Tối ưu hóa hệ thống & Bổ sung Nhật ký cập nhật",
         items: [
             "Tích hợp nút xem Nhật ký cập nhật trên thanh công cụ nổi.",
@@ -26,22 +26,15 @@ const CHANGELOG_DATA = [
     }
 ];
 
-// Hàm khởi tạo và chèn khung giao diện vào thẻ holder
-function injectChangelogComponent() {
+// Hàm khởi tạo và dựng sẵn khung modal vào body
+function renderChangelogCardModal() {
     let holder = document.getElementById('injection-changelog-card-holder');
     if (!holder) {
         holder = document.createElement('div');
         holder.id = 'injection-changelog-card-holder';
-        holder.className = "fixed bottom-16 right-[1065px] z-50 select-none";
+        holder.className = "fixed bottom-16 right-4 z-50 select-none";
         document.body.appendChild(holder);
     }
-    renderChangelogCardModal();
-}
-
-// Hàm vẽ giao diện Popup Nhật Ký
-function renderChangelogCardModal() {
-    let holder = document.getElementById('injection-changelog-card-holder');
-    if (!holder) return;
 
     let logsHtml = CHANGELOG_DATA.map(function(log) {
         let itemsHtml = log.items.map(function(item) {
@@ -78,7 +71,7 @@ function renderChangelogCardModal() {
         '</div>';
 }
 
-// Hàm bật/tắt (Toggle) hiển thị bảng Nhật ký
+// Hàm Bật/Tắt hiển thị bảng
 function toggleFloatingChangelogCard(e) {
     if (e && e.stopPropagation) e.stopPropagation();
     let card = document.getElementById('floating-changelog-card');
@@ -91,13 +84,13 @@ function toggleFloatingChangelogCard(e) {
     }
 }
 
-// Tự động khởi chạy khi trang web tải xong
+// Tự động dựng sẵn giao diện khi nạp trang
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", injectChangelogComponent);
+    document.addEventListener("DOMContentLoaded", renderChangelogCardModal);
 } else {
-    injectChangelogComponent();
+    renderChangelogCardModal();
 }
 
-// Xuất hàm ra phạm vi toàn cục window
+// Đăng ký hàm ra window toàn cục
 window.toggleFloatingChangelogCard = toggleFloatingChangelogCard;
 window.renderChangelogCardModal = renderChangelogCardModal;
