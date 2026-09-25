@@ -1,6 +1,6 @@
 <!-- Tên file: index.html -->
-<!-- Chức năng: Bộ khung xương trung tâm, định vị Workspace chính, gom chung cả 3 nút điều khiển [Báo Thất Bại], [Thương Nhân], [Lợi Nhuận] vào cùng 1 hàng ngang duy nhất (bottom-3 right-4) và tự động kích hoạt nạp giao diện tĩnh offline an toàn tuyệt đối -->
-<!-- File cha của: khung-nhap-bien-so.js, thanh-dieu-huong-tab.js, hop-thoai-nhap-doai.js, hop-thoai-loi-nhuan.js, cua-so-cai-dat.js, dong-co-bam-gio-va-ky-luc.js, bieu-do-duong-song-ky-luc.js, tinh-toan-loi-lo-doi-hinh.js, giao-dien-thanh-bam-gio-chan-bang.js, giao-dien-dashboard-thong-ke.js -->
+<!-- Chức năng: Bộ khung xương trung tâm, định vị Workspace chính, gom chung cả 4 nút điều khiển [Nhật Ký], [Báo Thất Bại], [Thương Nhân], [Lợi Nhuận] vào cùng 1 hàng ngang duy nhất (bottom-3 right-4) và tự động kích hoạt nạp giao diện tĩnh offline an toàn tuyệt đối -->
+<!-- File cha của: khung-nhap-bien-so.js, thanh-dieu-huong-tab.js, hop-thoai-nhap-doai.js, hop-thoai-loi-nhuan.js, cua-so-cai-dat.js, dong-co-bam-gio-va-ky-luc.js, bieu-do-duong-song-ky-luc.js, tinh-toan-loi-lo-doi-hinh.js, giao-dien-thanh-bam-gio-chan-bang.js, giao-dien-dashboard-thong-ke.js, quan-ly-nhat-ky-cap-nhat.js -->
 
 <!DOCTYPE html>
 <html lang="vi" class="h-full">
@@ -9,8 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản Lý Thái Hư - Bản Cấu Hình Vuốt Kéo Cao Cấp</title>
     <!-- Tailwind CSS v4 CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link class="custom-style" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="[https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4](https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4)"></script>
+    <link class="custom-style" rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -135,7 +135,7 @@
         </button>
     </div>
 
-   <!-- CỤM 4 NÚT GOM CHUNG 1 HÀNG NGANG DUY NHẤT (GÓC DƯỚI PHẢI) -->
+    <!-- CỤM 4 NÚT GOM CHUNG 1 HÀNG NGANG DUY NHẤT (GÓC DƯỚI PHẢI) -->
     <div id="floating-bubble-profit-container" class="fixed bottom-3 right-4 z-50 flex items-center gap-2 select-none">
         <button id="floating-bubble-changelog-button" onclick="toggleFloatingChangelogCard(event)" class="bg-gray-955 border border-cyan-500 text-cyan-400 font-black px-3.5 py-2.5 rounded-full shadow-2xl flex items-center gap-1.5 hover:bg-gray-800 transition cursor-pointer select-none text-xs">
             <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i> Nhật Ký
@@ -161,7 +161,8 @@
     <div id="injection-changelog-card-holder" class="fixed bottom-16 right-[1065px] z-50 select-none"></div>
 
     <div id="injection-settings-modal-container"></div>
-<script src="tu-dong-luu-file.js"></script>
+    <script src="tu-dong-luu-file.js"></script>
+
     <!-- 1. NẠP THÀNH PHẦN COMPONENT TĨNH -->
     <script src="khung-nhap-bien-so.js"></script>
     <script src="thanh-dieu-huong-tab.js"></script>
@@ -219,5 +220,3 @@
     </script>
 </body>
 </html>
-
-<!-- Tổng số dòng code trong file này: 180 dòng. -->
