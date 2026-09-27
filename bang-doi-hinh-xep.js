@@ -6,34 +6,61 @@ if (typeof window.activeTeamRunningTimers === 'undefined') {
     window.activeTeamRunningTimers = {};
 }
 
-// HÀM SAO CHÉP TÊN NHÂN VẬT GỐC VÀO CLIPBOARD
-function copyLineupMemberName(name) {
-    if (!name || name === '-- Chọn bot --' || name === '-- Trống --') return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(name).then(function() {
-            if (typeof logUserAction === 'function') logUserAction('Đã Copy Tên TK Gốc: ' + name);
-        }).catch(function() {
-            fallbackCopyLineupText(name);
+// HÀM COPY ĐỘNG THEO VỊ TRÍ SLOT - ĂN NGAY LẦN CLICK ĐẦU VÀ KHÔNG BAO GIỜ NHẦM TÊN
+function copyLineupMemberBySlot(teamId, slotIndex, event) {
+    if (event) {
+        event.stopPropagation();
+        if (event.preventDefault) event.preventDefault();
+    }
+
+    if (typeof systemDatabase === 'undefined' || !systemDatabase.teams || !systemDatabase.members) return;
+
+    let teamsList = Array.isArray(systemDatabase.teams) ? systemDatabase.teams : Object.values(systemDatabase.teams);
+    let team = teamsList.find(function(t) { return String(t.id) === String(teamId); });
+    if (!team || !team.memberIds) return;
+
+    let memberId = team.memberIds[slotIndex];
+    if (!memberId) return;
+
+    let member = systemDatabase.members[memberId];
+    if (!member || !member.name) return;
+
+    let textToCopy = member.name.trim();
+
+    // 1. Dùng thẻ input ẩn đồng bộ để ghi trực tiếp vào Clipboard
+    let tempInput = document.createElement('input');
+    tempInput.setAttribute('value', textToCopy);
+    tempInput.style.position = 'fixed';
+    tempInput.style.left = '-9999px';
+    tempInput.style.top = '0px';
+    tempInput.style.opacity = '0';
+    document.body.appendChild(tempInput);
+
+    tempInput.focus();
+    tempInput.select();
+    tempInput.setSelectionRange(0, 99999);
+
+    let success = false;
+    try {
+        success = document.execCommand('copy');
+    } catch (err) {
+        success = false;
+    }
+    document.body.removeChild(tempInput);
+
+    // 2. Dự phòng thêm navigator.clipboard
+    if (!success && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(function() {
+            if (typeof logUserAction === 'function') logUserAction('Đã Copy Tên TK Gốc: ' + textToCopy);
         });
-    } else {
-        fallbackCopyLineupText(name);
+        return;
+    }
+
+    if (success && typeof logUserAction === 'function') {
+        logUserAction('Đã Copy Tên TK Gốc: ' + textToCopy);
     }
 }
-
-function fallbackCopyLineupText(text) {
-    let ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-        document.execCommand('copy');
-        if (typeof logUserAction === 'function') logUserAction('Đã Copy Tên TK Gốc: ' + text);
-    } catch (e) {}
-    document.body.removeChild(ta);
-}
-window.copyLineupMemberName = copyLineupMemberName;
+window.copyLineupMemberBySlot = copyLineupMemberBySlot;
 
 /* ==========================================================================
    KHỐI 1: [ĐÃ KHÓA] WIDGET BẤM GIỜ, KỶ LỤC & CỤM NÚT THỐNG KÊ + TÍNH LỜI LỖ
