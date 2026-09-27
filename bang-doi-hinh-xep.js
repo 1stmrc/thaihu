@@ -1,14 +1,10 @@
 /* ==========================================================================
-   MODULE: QUẢN LÝ VÀ HIỂN THỊ BẢNG ĐỘI HÌNH XẾP (BANG-DOI-HINH-XEP.JS)
-   Chức năng: Quản lý hiển thị danh sách 8 nhân vật của đội hình xếp,
-   bổ sung cột Copy tên nhân vật độc lập, thu gọn chiều ngang cột tiến độ
-   và cố định huy hiệu Thương Nhân ở đầu ô tiến độ.
+   MODULE: BẢNG ĐỘI HÌNH XẾP (BANG-DOI-HINH-XEP.JS)
+   Chức năng: Render bảng 8 thành viên của đội hình xếp vào #active-panel-view-viewport,
+   thêm cột Copy tên nhân vật gốc, thu gọn cột Tiến Độ và ghim huy hiệu ◆ TN ở đầu ô.
    ========================================================================== */
 
-let activeLineupSetupIndex = 0;
-let activeLineupTeamId = "";
-
-// 1. CÁC HÀM TIỆN ÍCH & SAO CHÉP TÊN NHÂN VẬT
+// 1. HÀM LẤY TIỀN TỐ ĐỘI GỐC (A, B, C, D, E, G, H, L...)
 function getMemberTeamLetterPrefix(member) {
     if (!member || !member.originalTeamId) return "";
     if (typeof systemDatabase === 'undefined' || !systemDatabase.teams) return "";
@@ -28,6 +24,7 @@ function getMemberTeamLetterPrefix(member) {
     return letter.toUpperCase() + ".";
 }
 
+// 2. HÀM ĐỊNH DẠNG TÊN HIỂN THỊ DROPDOWN
 function formatLineupMemberDisplayFull(member) {
     if (!member || !member.name) return "-- Trống --";
     let prefix = getMemberTeamLetterPrefix(member);
@@ -38,13 +35,18 @@ function formatLineupMemberDisplayFull(member) {
     return prefix + member.name;
 }
 
+// 3. HÀM COPY TÊN NHÂN VẬT GỐC
 function copyLineupMemberName(memberName) {
     if (!memberName || memberName === '-- Trống --' || String(memberName).trim() === '') return;
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(memberName).then(function() {
-            showLineupToastNotification('Đã Copy Tên TK Gốc: ' + memberName, 'success');
-            logLineupActivityAction('Đã Copy Tên TK Gốc: ' + memberName, 'info');
+            if (typeof showSystemToastNotification === 'function') {
+                showSystemToastNotification('Đã Copy Tên TK Gốc: ' + memberName, 'success');
+            }
+            if (typeof logActivityAction === 'function') {
+                logActivityAction('Đã Copy Tên TK Gốc: ' + memberName, 'info');
+            }
         }).catch(function() {
             fallbackCopyLineupText(memberName);
         });
@@ -62,24 +64,17 @@ function fallbackCopyLineupText(text) {
     ta.select();
     try {
         document.execCommand('copy');
-        showLineupToastNotification('Đã Copy Tên TK Gốc: ' + text, 'success');
-        logLineupActivityAction('Đã Copy Tên TK Gốc: ' + text, 'info');
+        if (typeof showSystemToastNotification === 'function') {
+            showSystemToastNotification('Đã Copy Tên TK Gốc: ' + text, 'success');
+        }
+        if (typeof logActivityAction === 'function') {
+            logActivityAction('Đã Copy Tên TK Gốc: ' + text, 'info');
+        }
     } catch (e) {}
     document.body.removeChild(ta);
 }
 
-function showLineupToastNotification(msg, type) {
-    if (typeof showSystemToastNotification === 'function') {
-        showSystemToastNotification(msg, type);
-    }
-}
-
-function logLineupActivityAction(msg, type) {
-    if (typeof logActivityAction === 'function') {
-        logActivityAction(msg, type);
-    }
-}
-
+// 4. HÀM LƯU DỮ LIỆU
 function saveLineupSystemDatabase() {
     if (typeof saveSystemDatabase === 'function') {
         saveSystemDatabase();
@@ -90,80 +85,63 @@ function saveLineupSystemDatabase() {
     }
 }
 
-// 2. HÀM DỰNG BẢNG ĐỘI HÌNH XẾP (TỰ ĐỘNG BẮT ĐÚNG CONTAINER & DỮ LIỆU TEAM)
-function renderLineupTableView(targetTeamId) {
-    let viewport = document.getElementById('lineup-team-members-container') ||
-                   document.getElementById('lineup-sub-tab-content') ||
-                   document.getElementById('team-members-table-container') ||
-                   document.getElementById('active-panel-view-viewport') || 
+// 5. HÀM VẼ BẢNG THÀNH VIÊN VÀO #active-panel-view-viewport
+function renderLineupTableView(paramTeamId) {
+    let viewport = document.getElementById('active-panel-view-viewport') || 
                    document.getElementById('team-content-container') || 
                    document.getElementById('main-workspace-body');
     if (!viewport) return;
 
-    let subNavZone = document.getElementById('sub-navbar-container-zone');
-    if (subNavZone) subNavZone.classList.remove('hidden');
-
-    if (!systemDatabase) {
+    if (!systemDatabase || !systemDatabase.teams) {
         viewport.innerHTML = '<div class="p-6 text-center text-gray-500 text-xs italic">Chưa nạp cơ sở dữ liệu hệ thống.</div>';
         return;
     }
 
-    let membersDict = systemDatabase.members || {};
-    let allMembersList = Object.values(membersDict);
-    allMembersList.sort(function(a, b) {
-        let nameA = formatLineupMemberDisplayFull(a);
-        let nameB = formatLineupMemberDisplayFull(b);
-        return nameA.localeCompare(nameB);
-    });
+    let teamsList = Array.isArray(systemDatabase.teams) 
+        ? systemDatabase.teams 
+        : Object.values(systemDatabase.teams);
 
-    // 1. Quét tìm đội hình đang chọn
-    let teamsList = Array.isArray(systemDatabase.teams) ? systemDatabase.teams : Object.values(systemDatabase.teams || {});
     let lineupTeams = teamsList.filter(function(t) { return t && t.type === 'lineup'; });
+    if (lineupTeams.length === 0) {
+        viewport.innerHTML = '<div class="p-6 text-center text-gray-500 text-xs italic">Chưa có đội hình xếp nào.</div>';
+        return;
+    }
 
-    let currentReqId = targetTeamId || activeLineupTeamId || (typeof activeTeamId !== 'undefined' ? activeTeamId : "");
-    let activeTeamObj = null;
+    // Xác định đội đang chọn
+    let reqId = paramTeamId || (typeof activeTeamId !== 'undefined' ? activeTeamId : "");
+    let activeTeam = null;
 
-    if (currentReqId) {
-        activeTeamObj = lineupTeams.find(function(t) {
-            return String(t.id) === String(currentReqId) || String(t.name).toLowerCase() === String(currentReqId).toLowerCase();
+    if (reqId) {
+        activeTeam = lineupTeams.find(function(t) {
+            return String(t.id) === String(reqId) || 
+                   String(t.name).toLowerCase() === String(reqId).toLowerCase() ||
+                   ('team_' + String(t.name).toLowerCase()) === String(reqId).toLowerCase();
         });
     }
 
-    if (!activeTeamObj && lineupTeams.length !== 0) {
-        let idx = (typeof activeLineupSetupIndex === 'number' && Math.sign(activeLineupSetupIndex) !== -1 && activeLineupSetupIndex < lineupTeams.length) 
-            ? activeLineupSetupIndex 
-            : 0;
-        activeTeamObj = lineupTeams[idx];
+    if (!activeTeam) {
+        activeTeam = lineupTeams[0];
     }
 
-    let curPresetId = systemDatabase.currentPresetId || (systemDatabase.lineupPresets && systemDatabase.lineupPresets[0] ? systemDatabase.lineupPresets[0].id : "");
-    let preset = (systemDatabase.lineupPresets || []).find(function(p) { return p.id === curPresetId; }) || (systemDatabase.lineupPresets ? systemDatabase.lineupPresets[0] : null);
-
-    let memberIds = [];
-    let currentTeamName = "1";
-    let teamKeyIdentifier = "";
-
-    if (activeTeamObj) {
-        memberIds = activeTeamObj.memberIds || [];
-        currentTeamName = activeTeamObj.name || "1";
-        teamKeyIdentifier = activeTeamObj.id;
-        activeLineupTeamId = activeTeamObj.id;
-    } else if (preset && preset.setups && preset.setups.length !== 0) {
-        let setupIdx = (typeof activeLineupSetupIndex === 'number' && Math.sign(activeLineupSetupIndex) !== -1 && activeLineupSetupIndex < preset.setups.length) 
-            ? activeLineupSetupIndex 
-            : 0;
-        let setup = preset.setups[setupIdx] || preset.setups[0];
-        memberIds = setup.memberIds || [];
-        currentTeamName = setup.name || "1";
-        teamKeyIdentifier = "setup_" + setupIdx;
+    if (typeof activeTeamId !== 'undefined') {
+        activeTeamId = activeTeam.id;
     }
 
-    // 2. Dựng 8 dòng thành viên (Có cột Copy và căn chỉnh tiến độ)
+    let memberIds = activeTeam.memberIds || [];
+    let membersDict = systemDatabase.members || {};
+
+    let allMembersList = Object.values(membersDict);
+    allMembersList.sort(function(a, b) {
+        return formatLineupMemberDisplayFull(a).localeCompare(formatLineupMemberDisplayFull(b));
+    });
+
+    // Dựng 8 dòng thành viên
     let rowsHtml = '';
     for (let slot = 0; slot !== 8; slot++) {
         let memId = memberIds[slot] || '';
         let mem = memId ? membersDict[memId] : null;
 
+        // Dropdown chọn nhân vật
         let optionsHtml = '<option value="">-- Trống --</option>';
         optionsHtml += allMembersList.map(function(m) {
             let isSelected = (m.id === memId) ? 'selected' : '';
@@ -171,11 +149,11 @@ function renderLineupTableView(targetTeamId) {
         }).join('');
 
         let selectMemberHtml = 
-            '<select onchange="updateLineupMemberSlot(\'' + teamKeyIdentifier + '\', ' + slot + ', this.value)" class="w-full bg-gray-900 border border-gray-800 text-gray-200 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer">' +
+            '<select onchange="updateLineupMemberSlot(\'' + activeTeam.id + '\', ' + slot + ', this.value)" class="w-full bg-gray-900 border border-gray-800 text-gray-200 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer">' +
                 optionsHtml +
             '</select>';
 
-        // CỘT NÚT COPY TÊN NHÂN VẬT GỐC
+        // Nút Copy Tên Nhân Vật Gốc
         let copyBtnHtml = (mem && mem.name)
             ? '<button onclick="copyLineupMemberName(\'' + mem.name + '\')" class="w-7 h-7 rounded-lg bg-gray-900 hover:bg-cyan-600 text-gray-400 hover:text-white border border-gray-800 hover:border-cyan-500 transition flex items-center justify-center cursor-pointer shadow mx-auto" title="Copy tên: ' + mem.name + '"><i class="fa-regular fa-copy text-xs"></i></button>'
             : '<button disabled class="w-7 h-7 rounded-lg bg-gray-900/50 text-gray-600 border border-gray-800/40 flex items-center justify-center opacity-40 cursor-not-allowed mx-auto"><i class="fa-regular fa-copy text-xs"></i></button>';
@@ -184,7 +162,7 @@ function renderLineupTableView(targetTeamId) {
         let npVal = (mem && typeof mem.nganPhieu !== 'undefined') ? mem.nganPhieu : 0;
         let npDisplayHtml = '<div class="text-center font-mono font-bold text-amber-300 bg-gray-900 border border-gray-800 py-1 px-1.5 rounded-lg text-xs inline-block min-w-[42px]">' + npVal + '</div>';
 
-        // CỘT TIẾN ĐỘ: Đã giảm bề ngang, biểu tượng ◆ TN đứng ở đầu mép trái
+        // Cột Tiến Độ: Thu gọn chiều ngang bù cho cột Copy, huy hiệu ◆ TN cố định ở đầu mép trái
         let curRuns = mem ? (parseInt(mem.currentRuns) || 0) : 0;
         let maxRuns = mem ? (parseInt(mem.maxRuns) || 2) : 2;
         let isDoneMerchant = mem ? (parseInt(mem.merchantRuns) === 3 || parseInt(mem.merchantRuns) === 4) : false;
@@ -246,7 +224,7 @@ function renderLineupTableView(targetTeamId) {
                             '<th class="p-2.5 text-center w-36">' +
                                 '<div class="flex items-center justify-center gap-1.5">' +
                                     '<span>TIẾN ĐỘ</span>' +
-                                    '<button onclick="batchIncrementRunsLineupTeam(\'' + teamKeyIdentifier + '\')" class="bg-purple-600 hover:bg-purple-500 text-white px-2 py-0.5 rounded text-[10px] font-black transition cursor-pointer flex items-center gap-1 shadow" title="Cộng 1 lượt cho cả 8 tài khoản">' +
+                                    '<button onclick="batchIncrementRunsLineupTeam(\'' + activeTeam.id + '\')" class="bg-purple-600 hover:bg-purple-500 text-white px-2 py-0.5 rounded text-[10px] font-black transition cursor-pointer flex items-center gap-1 shadow" title="Cộng 1 lượt cho cả 8 tài khoản">' +
                                         '<i class="fa-solid fa-angles-up text-[9px]"></i>+1 Team' +
                                     '</button>' +
                                 '</div>' +
@@ -263,44 +241,35 @@ function renderLineupTableView(targetTeamId) {
         '</div>';
 }
 
-// 3. CÁC HÀM XỬ LÝ DỮ LIỆU & SỰ KIỆN CLICK
+// 6. CÁC HÀM XỬ LÝ SỰ KIỆN CLICK & CẬP NHẬT DỮ LIỆU
 function switchLineupTeam(teamId) {
-    activeLineupTeamId = teamId;
-    if (typeof activeTeamId !== 'undefined') {
-        activeTeamId = teamId;
-    }
     renderLineupTableView(teamId);
 }
 
 function switchLineupSetup(setupIdx) {
-    activeLineupSetupIndex = setupIdx;
+    if (systemDatabase && systemDatabase.teams) {
+        let teamsList = Array.isArray(systemDatabase.teams) ? systemDatabase.teams : Object.values(systemDatabase.teams);
+        let lineupTeams = teamsList.filter(function(t) { return t && t.type === 'lineup'; });
+        if (lineupTeams[setupIdx]) {
+            renderLineupTableView(lineupTeams[setupIdx].id);
+            return;
+        }
+    }
     renderLineupTableView();
 }
 
-function updateLineupMemberSlot(teamKey, slotIdx, newMemberId) {
-    if (!systemDatabase) return;
+function updateLineupMemberSlot(teamId, slotIdx, newMemberId) {
+    if (!systemDatabase || !systemDatabase.teams) return;
 
-    let teamsList = Array.isArray(systemDatabase.teams) ? systemDatabase.teams : Object.values(systemDatabase.teams || {});
-    let team = teamsList.find(function(t) { return t.id === teamKey; });
+    let teamsList = Array.isArray(systemDatabase.teams) ? systemDatabase.teams : Object.values(systemDatabase.teams);
+    let team = teamsList.find(function(t) { return String(t.id) === String(teamId); });
     if (team) {
         if (!team.memberIds) team.memberIds = ["","","","","","","",""];
         team.memberIds[slotIdx] = newMemberId;
     }
 
-    if (systemDatabase.lineupPresets) {
-        let curPresetId = systemDatabase.currentPresetId || (systemDatabase.lineupPresets[0] ? systemDatabase.lineupPresets[0].id : "");
-        let preset = systemDatabase.lineupPresets.find(function(p) { return p.id === curPresetId; });
-        if (preset && preset.setups) {
-            let sIdx = (teamKey && String(teamKey).indexOf("setup_") !== -1) ? parseInt(teamKey.replace("setup_", "")) : activeLineupSetupIndex;
-            if (preset.setups[sIdx]) {
-                if (!preset.setups[sIdx].memberIds) preset.setups[sIdx].memberIds = ["","","","","","","",""];
-                preset.setups[sIdx].memberIds[slotIdx] = newMemberId;
-            }
-        }
-    }
-
     saveLineupSystemDatabase();
-    renderLineupTableView(teamKey);
+    renderLineupTableView(teamId);
 }
 
 function incrementLineupMemberRun(memberId) {
@@ -326,26 +295,15 @@ function decrementLineupMemberRun(memberId) {
     }
 }
 
-function batchIncrementRunsLineupTeam(teamKey) {
-    if (!systemDatabase) return;
-    let memberIds = [];
+function batchIncrementRunsLineupTeam(teamId) {
+    if (!systemDatabase || !systemDatabase.teams) return;
 
-    let teamsList = Array.isArray(systemDatabase.teams) ? systemDatabase.teams : Object.values(systemDatabase.teams || {});
-    let team = teamsList.find(function(t) { return t.id === teamKey; });
-    
-    if (team && team.memberIds) {
-        memberIds = team.memberIds;
-    } else if (systemDatabase.lineupPresets) {
-        let curPresetId = systemDatabase.currentPresetId || (systemDatabase.lineupPresets[0] ? systemDatabase.lineupPresets[0].id : "");
-        let preset = systemDatabase.lineupPresets.find(function(p) { return p.id === curPresetId; });
-        let sIdx = (teamKey && String(teamKey).indexOf("setup_") !== -1) ? parseInt(teamKey.replace("setup_", "")) : activeLineupSetupIndex;
-        if (preset && preset.setups && preset.setups[sIdx]) {
-            memberIds = preset.setups[sIdx].memberIds || [];
-        }
-    }
+    let teamsList = Array.isArray(systemDatabase.teams) ? systemDatabase.teams : Object.values(systemDatabase.teams);
+    let team = teamsList.find(function(t) { return String(t.id) === String(teamId); });
+    if (!team || !team.memberIds) return;
 
     let updatedCount = 0;
-    memberIds.forEach(function(mId) {
+    team.memberIds.forEach(function(mId) {
         if (mId && systemDatabase.members && systemDatabase.members[mId]) {
             let mem = systemDatabase.members[mId];
             let cur = parseInt(mem.currentRuns) || 0;
@@ -359,8 +317,10 @@ function batchIncrementRunsLineupTeam(teamKey) {
 
     if (updatedCount !== 0) {
         saveLineupSystemDatabase();
-        showLineupToastNotification('Đã +1 lượt cho ' + updatedCount + ' tài khoản!', 'success');
-        renderLineupTableView(teamKey);
+        if (typeof showSystemToastNotification === 'function') {
+            showSystemToastNotification('Đã +1 lượt cho ' + updatedCount + ' tài khoản!', 'success');
+        }
+        renderLineupTableView(teamId);
     }
 }
 
@@ -372,7 +332,7 @@ function changeLineupPayMode(memberId, runNum, newMode) {
     saveLineupSystemDatabase();
 }
 
-// 4. XUẤT CÁC HÀM TOÀN CỤC RA WINDOW
+// 7. XUẤT ĐẦY ĐỦ CÁC HÀM RA WINDOW ĐỂ THANH ĐIỀU HƯỚNG GỌI TỚI
 window.getMemberTeamLetterPrefix = getMemberTeamLetterPrefix;
 window.formatLineupMemberDisplayFull = formatLineupMemberDisplayFull;
 window.copyLineupMemberName = copyLineupMemberName;
