@@ -6,6 +6,8 @@
    ========================================================================== */
 
 let activeLineupSetupIndex = 0;
+let activeLineupTeamId = "";
+let isLineupWorkspaceInitialized = false;
 
 // ==========================================================================
 // 1. CÁC HÀM TIỆN ÍCH, SAO CHÉP & ĐỊNH DẠNG TÊN NHÂN VẬT
@@ -82,6 +84,16 @@ function showLineupToastNotification(msg, type) {
 function logLineupActivityAction(msg, type) {
     if (typeof logActivityAction === 'function') {
         logActivityAction(msg, type);
+    }
+}
+
+function saveLineupSystemDatabase() {
+    if (typeof saveSystemDatabase === 'function') {
+        saveSystemDatabase();
+    } else if (typeof autoSaveToDisk === 'function') {
+        autoSaveToDisk();
+    } else {
+        localStorage.setItem('THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase));
     }
 }
 
@@ -190,7 +202,7 @@ function renderLineupTeamToolbarHtml(activeSetup, membersDict) {
 // 4. HÀM DỰNG GIAO DIỆN CHÍNH (RENDER LINEUP WORKSPACE VIEW)
 // ==========================================================================
 
-function renderLineupWorkspaceView() {
+function renderLineupWorkspaceView(targetTeamId) {
     let viewport = document.getElementById('active-panel-view-viewport') || 
                    document.getElementById('team-content-container') || 
                    document.getElementById('main-workspace-body');
@@ -207,6 +219,17 @@ function renderLineupWorkspaceView() {
     let curPresetId = systemDatabase.currentPresetId || systemDatabase.lineupPresets[0].id;
     let preset = systemDatabase.lineupPresets.find(function(p) { return p.id === curPresetId; }) || systemDatabase.lineupPresets[0];
     let setups = preset.setups || [];
+
+    // Nếu có truyền ID đội hình con từ thanh điều hướng (hoặc tên đội như "1", "2")
+    if (targetTeamId && typeof targetTeamId === 'string') {
+        activeLineupTeamId = targetTeamId;
+        let matchedIdx = setups.findIndex(function(s) {
+            return s.id === targetTeamId || s.name === targetTeamId || ('team_' + s.name) === targetTeamId;
+        });
+        if (matchedIdx !== -1) {
+            activeLineupSetupIndex = matchedIdx;
+        }
+    }
 
     if (Math.sign(activeLineupSetupIndex) === -1 || activeLineupSetupIndex >= setups.length) {
         activeLineupSetupIndex = 0;
@@ -259,7 +282,6 @@ function renderLineupWorkspaceView() {
     // 2. DỰNG DANH SÁCH 8 THÀNH VIÊN VÀ CÁC CỘT (CÓ CỘT COPY & HUY HIỆU ĐẦU Ô TIẾN ĐỘ)
     let allMembersList = Object.values(membersDict);
 
-    // Sắp xếp danh sách chọn theo tên hiển thị
     allMembersList.sort(function(a, b) {
         let nameA = formatLineupMemberDisplayFull(a);
         let nameB = formatLineupMemberDisplayFull(b);
@@ -312,7 +334,7 @@ function renderLineupWorkspaceView() {
 
         // Huy hiệu Thương Nhân nằm cố định ở sát mép trái (đầu ô)
         let tnBadgeStart = isDoneMerchant 
-            ? '<span class="absolute left-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-[9px] text-amber-300 bg-amber-950/90 border border-amber-500/60 px-1 py-0.5 rounded font-black font-sans shadow-xs pointer-events-none" title="Đã chạy 3/3 Thương Nhân">◆ TN</span>'
+            ? '<span class="absolute left-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-[9px] text-amber-300 bg-amber-955/90 border border-amber-500/60 px-1 py-0.5 rounded font-black font-sans shadow-xs pointer-events-none" title="Đã chạy 3/3 Thương Nhân">◆ TN</span>'
             : '';
 
         let progressCellHtml = 
@@ -485,6 +507,10 @@ function switchLineupSetup(setupIdx) {
     renderLineupWorkspaceView();
 }
 
+function switchLineupTeam(teamId) {
+    renderLineupWorkspaceView(teamId);
+}
+
 function updateLineupMemberSlot(setupIdx, slotIdx, newMemberId) {
     let curPresetId = systemDatabase.currentPresetId || systemDatabase.lineupPresets[0].id;
     let preset = systemDatabase.lineupPresets.find(function(p) { return p.id === curPresetId; });
@@ -645,37 +671,40 @@ function deleteCurrentLineupSetupConfirm() {
     renderLineupWorkspaceView();
 }
 
-function saveLineupSystemDatabase() {
-    if (typeof saveSystemDatabase === 'function') {
-        saveSystemDatabase();
-    } else if (typeof autoSaveToDisk === 'function') {
-        autoSaveToDisk();
-    } else {
-        localStorage.setItem('THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase));
-    }
-}
-
 // ==========================================================================
-// 6. XUẤT CÁC HÀM TOÀN CỤC RA WINDOW
+// 6. XUẤT CÁC HÀM TOÀN CỤC RA WINDOW (TƯƠNG THÍCH MỌI LỜI GỌI HỆ THỐNG)
 // ==========================================================================
 
 window.getMemberTeamLetterPrefix = getMemberTeamLetterPrefix;
 window.formatLineupMemberDisplayFull = formatLineupMemberDisplayFull;
 window.copyLineupMemberName = copyLineupMemberName;
+window.copyMemberName = copyLineupMemberName;
+
 window.renderLineupWorkspaceView = renderLineupWorkspaceView;
+window.renderLineupTableView = renderLineupWorkspaceView;
+window.renderLineupTable = renderLineupWorkspaceView;
+window.renderLineupView = renderLineupWorkspaceView;
+window.renderLineupTeam = renderLineupWorkspaceView;
+
 window.switchLineupPreset = switchLineupPreset;
 window.openCreateLineupPresetPrompt = openCreateLineupPresetPrompt;
 window.openRenameLineupPresetPrompt = openRenameLineupPresetPrompt;
 window.duplicateCurrentLineupPreset = duplicateCurrentLineupPreset;
 window.deleteCurrentLineupPreset = deleteCurrentLineupPreset;
+
 window.switchLineupSetup = switchLineupSetup;
+window.switchLineupTeam = switchLineupTeam;
 window.updateLineupMemberSlot = updateLineupMemberSlot;
+
 window.incrementLineupMemberRun = incrementLineupMemberRun;
 window.decrementLineupMemberRun = decrementLineupMemberRun;
 window.batchIncrementRunsLineupTeam = batchIncrementRunsLineupTeam;
+window.batchIncrementLineupTeam = batchIncrementRunsLineupTeam;
+
 window.resetCurrentLineupTeamRunsConfirm = resetCurrentLineupTeamRunsConfirm;
 window.clearCurrentLineupTeamMembersConfirm = clearCurrentLineupTeamMembersConfirm;
 window.changeLineupPayMode = changeLineupPayMode;
+
 window.addNewLineupSetupPrompt = addNewLineupSetupPrompt;
 window.renameCurrentLineupSetupPrompt = renameCurrentLineupSetupPrompt;
 window.deleteCurrentLineupSetupConfirm = deleteCurrentLineupSetupConfirm;
