@@ -1,19 +1,39 @@
 // Tên file: bang-doi-hinh-xep.js
-// Chức năng: Bảng Đội Hình Xếp - Phân đoạn tiến độ độc lập theo từng lượt đi (Lượt 1, 2, 3), nhận diện trực quan: Thất bại 0 NL (Đỏ nháy nhanh), Thất bại có NL (Đỏ tĩnh không nháy), Thành công (Xanh ngọc shimmer/Emerald), khóa cố định menu tài khoản con luôn song song kế bên bảng nhóm (kích thước chuẩn 222px), tích hợp cầu đệm di chuột chống mất menu khi rê ngang, lọc tuyệt đối không cho 1 tài khoản xuất hiện 2 lần trong cùng 1 đội hình, định vị thông minh Hàng 1-5 mở xuống / Hàng 6-8 mở lên (triệt tiêu 100% lỗi che tiêu đề và thanh tab), tính toán chính xác lượt khả dụng cho mọi loại tài khoản (Max 2, Max 3), hiển thị huy hiệu [💎 TN], +1 tiến độ Thái Hư tự động +4 Ngân Phiếu, thanh bấm giờ trực quan và tính lời lỗ.
+// Chức năng: Bảng Đội Hình Xếp - Phân đoạn tiến độ độc lập theo từng lượt đi (Lượt 1, 2, 3), nhận diện trực quan: Thất bại 0 NL (Đỏ nháy nhanh), Thất bại có NL (Đỏ tĩnh không nháy), Thành công (Xanh ngọc shimmer/Emerald), khóa cố định menu tài khoản con luôn song song kế bên bảng nhóm (kích thước chuẩn 222px), tích hợp cầu đệm di chuột chống mất menu khi rê ngang, lọc tuyệt đối không cho 1 tài khoản xuất hiện 2 lần trong cùng 1 đội hình, định vị thông minh Hàng 1-5 mở xuống / Hàng 6-8 mở lên (triệt tiêu 100% lỗi che tiêu đề và thanh tab), tính toán chính xác lượt khả dụng cho mọi loại tài khoản (Max 2, Max 3), hiển thị huy hiệu [💎 TN] ở đầu ô tiến độ, nút Copy tên nhân vật gốc, +1 tiến độ Thái Hư tự động +4 Ngân Phiếu, thanh bấm giờ trực quan và tính lời lỗ.
 // Con của file: giao-dien-thai-hu.js
-// Danh sách tính năng của file:
-//   1. [ĐÃ KHÓA] Widget bấm giờ chân bảng, lưu kỷ lục nhanh/chậm và tính Lời/Lỗ thời gian thực.
-//   2. [ĐÃ KHÓA] Đổi chế độ thanh toán vé/NP/Xu (Lần 2, Lần 3) và bù trừ Ngân Phiếu tự động.
-//   3. [ĐÃ SỬA & KHÓA] Phân đoạn tiến độ (1, 2, 3): Từng lượt đi hiển thị độc lập màu sắc (0 NL nháy đỏ nhanh, Có NL đỏ tĩnh, Thành công xanh).
-//   4. [ĐÃ KHÓA] Lọc 100% tài khoản đã chọn trong team: Không bao giờ hiển thị lại ở 7 slot còn lại của cùng đội hình đó.
-//   5. [ĐÃ KHÓA] Cầu đệm di chuột tàng hình (Hover Bridge): Rê chuột mượt mà sang menu con không bao giờ bị mất/đóng menu.
-//   6. [ĐÃ KHÓA] Chuẩn hóa kích thước 222px & phân tầng Dropdown Hàng 1-5 mở xuống, Hàng 6-8 mở lên chống che đỉnh.
-//   7. [ĐÃ KHÓA] Nút +1 Team hàng loạt và cơ chế kéo thả sắp xếp thứ tự hàng.
-// Trạng thái: [ĐÃ TEST HOÀN HẢO - KHÓA TOÀN BỘ MÃ NGUỒN NGÀY 26/08/2026 - KHÔNG TỰ Ý XÓA SỬA]
 
 if (typeof window.activeTeamRunningTimers === 'undefined') {
     window.activeTeamRunningTimers = {};
 }
+
+// HÀM SAO CHÉP TÊN NHÂN VẬT GỐC VÀO CLIPBOARD
+function copyLineupMemberName(name) {
+    if (!name || name === '-- Chọn bot --' || name === '-- Trống --') return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(name).then(function() {
+            if (typeof logUserAction === 'function') logUserAction('Đã Copy Tên TK Gốc: ' + name);
+        }).catch(function() {
+            fallbackCopyLineupText(name);
+        });
+    } else {
+        fallbackCopyLineupText(name);
+    }
+}
+
+function fallbackCopyLineupText(text) {
+    let ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        if (typeof logUserAction === 'function') logUserAction('Đã Copy Tên TK Gốc: ' + text);
+    } catch (e) {}
+    document.body.removeChild(ta);
+}
+window.copyLineupMemberName = copyLineupMemberName;
 
 /* ==========================================================================
    KHỐI 1: [ĐÃ KHÓA] WIDGET BẤM GIỜ, KỶ LỤC & CỤM NÚT THỐNG KÊ + TÍNH LỜI LỖ
@@ -25,19 +45,19 @@ function buildTimerWidgetHTMLInline(teamId) {
     let isRunning = !!timerData;
     let stats = (typeof getTeamDashboardStats === 'function') ? getTeamDashboardStats(teamId) : { fastestTime: null, slowestTime: null, todayTime: null };
     let globalRec = (typeof getAllTeamsGlobalRecords === 'function') ? getAllTeamsGlobalRecords() : { globalFastest: null, globalSlowest: null };
-    let currentTeamObj = (typeof systemDatabase !== 'undefined' && systemDatabase.teams) ? systemDatabase.teams.find(t => t.id === teamId) : null;
+    let currentTeamObj = (typeof systemDatabase !== 'undefined' && systemDatabase.teams) ? systemDatabase.teams.find(function(t) { return t.id === teamId; }) : null;
     let currentTeamName = currentTeamObj ? currentTeamObj.name.toUpperCase() : "TEAM";
 
-    let formatSecs = (sec) => {
+    let formatSecs = function(sec) {
         if (sec === null || sec === undefined || sec < 630) return "--:--";
         let m = Math.floor(sec / 60);
         let s = sec % 60;
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return `\({m.toString().padStart(2, '0')}:\){s.toString().padStart(2, '0')}`;
     };
 
     let playBtnHtml = isRunning ? `
         <button type="button" onmousedown="event.stopPropagation()" onclick="toggleTeamTimer('${teamId}')" class="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black px-5 py-2.5 rounded-xl transition shadow-lg text-xs flex items-center justify-center gap-2 cursor-pointer animate-pulse shrink-0 border border-rose-400 min-w-[145px]">
-            <i class="fa-solid fa-square"></i> Dừng: <span id="timer-display-label-${teamId}">${formatSecs(timerData ? timerData.elapsedSeconds : 0)}</span>
+            <i class="fa-solid fa-square"></i> Dừng: <span id="timer-display-label-\({teamId}">\){formatSecs(timerData ? timerData.elapsedSeconds : 0)}</span>
         </button>
     ` : `
         <button type="button" onmousedown="event.stopPropagation()" onclick="toggleTeamTimer('${teamId}')" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black px-5 py-2.5 rounded-xl transition shadow-lg text-xs flex items-center justify-center gap-2 cursor-pointer shrink-0 border border-emerald-400 min-w-[145px]">
@@ -88,8 +108,8 @@ function buildTimerWidgetHTMLInline(teamId) {
 
                     <div class="flex items-center gap-1 text-gray-200">
                         <span class="text-gray-400">Lời/Lỗ Team:</span>
-                        <strong class="${profitColor} font-black">${profitSign}${quickProfitGold.toFixed(1)}v</strong>
-                        <span class="text-[10px] text-gray-400 font-normal">(${profitSign}${quickProfitVND.toLocaleString('vi-VN')} đ)</span>
+                        <strong class="\({profitColor} font-black">\){profitSign}${quickProfitGold.toFixed(1)}v</strong>
+                        <span class="text-[10px] text-gray-400 font-normal">(\({profitSign}\){quickProfitVND.toLocaleString('vi-VN')} đ)</span>
                     </div>
                 </div>
 
@@ -155,7 +175,7 @@ function handleLineupMemberPayModeChange(memberId, runLevel, modeValue) {
 
     let modeNameMap = { 'ticket': `Trừ Vé Vàng (${currentTicketPrice}v)`, 'np50': '-50 Ngân Phiếu', 'xu40': '-40 Xu' };
     if (typeof logUserAction === 'function') {
-        logUserAction(`Đổi thanh toán [ ${m.name} ] (Lần ${runLevel}): ${modeNameMap[modeValue] || modeValue}`);
+        logUserAction(`Đổi thanh toán [ \({m.name} ] (Lần\){runLevel}): ${modeNameMap[modeValue] || modeValue}`);
     }
 }
 
@@ -164,10 +184,11 @@ function handleLineupMemberPayModeChange(memberId, runLevel, modeValue) {
    Chức năng: 
      - Phân chia thanh tiến độ thành từng ô riêng biệt (Lượt 1, Lượt 2, Lượt 3).
      - Từng lượt tự nhận diện: Thất bại 0 NL (Đỏ nháy nhanh), Thất bại có NL (Đỏ tĩnh không nháy), Thành công (Xanh).
+     - Nút Copy tên nhân vật gốc độc lập.
+     - Huy hiệu [💎 TN] chuyển về đứng cố định ở sát mép trái đầu ô tiến độ.
      - Lọc sạch 100% tài khoản đã chọn trong team, không cho phép hiển thị ở các slot khác của cùng team.
      - Cầu đệm di chuột (Hover Bridge) kết nối liền mạch bảng nhóm và bảng con, rê ngang không bao giờ mất.
      - Menu nhóm & menu con luôn đồng bộ chiều cao 222px, Hàng 1-5 mở xuống / Hàng 6-8 mở lên không che đỉnh/đáy.
-   Trạng thái: [ĐÃ TEST HOÀN HẢO - KHÓA KHÔNG SỬA]
    ========================================================================== */
 function renderLineupViewTableLayout(team, targetWrapper) {
     let html = `
@@ -175,8 +196,9 @@ function renderLineupViewTableLayout(team, targetWrapper) {
             <thead>
                 <tr class="bg-gray-900 border-b border-gray-700 text-gray-400 text-[11px] uppercase font-bold tracking-wider">
                     <th class="py-1.5 px-2 text-center w-10">STT</th>
-                    <th class="py-1.5 px-2 w-[210px]">LẮP ĐỘI HÌNH</th>
-                    <th class="py-1.5 px-2 text-center w-[85px] text-amber-400 whitespace-nowrap"><i class="fa-solid fa-scroll mr-1"></i>NP</th>
+                    <th class="py-1.5 px-2 w-[190px]">LẮP ĐỘI HÌNH</th>
+                    <th class="py-1.5 px-1 text-center w-9 text-cyan-400" title="Sao chép tên nhân vật"><i class="fa-regular fa-copy"></i></th>
+                    <th class="py-1.5 px-2 text-center w-[75px] text-amber-400 whitespace-nowrap"><i class="fa-solid fa-scroll mr-1"></i>NP</th>
                     <th class="py-1.5 px-2 text-center w-auto">
                         <div class="flex items-center justify-center gap-2">
                             <span>TIẾN ĐỘ</span>
@@ -194,14 +216,13 @@ function renderLineupViewTableLayout(team, targetWrapper) {
 
     let visibleRowCounter = 1;
 
-    team.memberIds.forEach((selectedMemberId, index) => {
+    team.memberIds.forEach(function(selectedMemberId, index) {
         let boundMember = systemDatabase.members[selectedMemberId];
         let isMaxRuns = boundMember && boundMember.currentRuns >= boundMember.maxRuns;
         let rowWaveDelay = `${(index * 0.35).toFixed(2)}s`;
 
-        // TÍNH LƯỢT KHẢ DỤNG THỰC TẾ: CHUẨN XÁC CHO MỌI LOẠI TÀI KHOẢN (MAX 2, MAX 3)
         let slotTempCapacityMap = {};
-        Object.keys(systemDatabase.members).forEach(id => {
+        Object.keys(systemDatabase.members).forEach(function(id) {
             let mb = systemDatabase.members[id];
             if (mb) {
                 let maxR = parseInt(mb.maxRuns) || 3;
@@ -210,41 +231,37 @@ function renderLineupViewTableLayout(team, targetWrapper) {
             }
         });
 
-        let srcTeam = boundMember ? systemDatabase.teams.find(t => t.memberIds && t.memberIds.includes(boundMember.id)) : null;
+        let srcTeam = boundMember ? systemDatabase.teams.find(function(t) { return t.memberIds && t.memberIds.includes(boundMember.id); }) : null;
         let selectedNameDisplay = boundMember ? ((typeof getMemberFullDisplayTitle === 'function') ? getMemberFullDisplayTitle(boundMember, srcTeam) : boundMember.name) : "-- Chọn bot --";
 
-        // ĐỊNH VỊ CHỐNG CHE: HÀNG 1-5 NEO MỞ XUỐNG DƯỚI, HÀNG 6-8 NEO ĐÁY MỞ LÊN TRÊN
         let isDropUp = index >= 5;
         let rootPositionClass = isDropUp ? "bottom-0" : "top-full mt-0.5";
 
         let customDropdownHtml = `
             <div class="relative inline-block w-full group/dropdown" onmousedown="event.stopPropagation()">
-                <button type="button" onclick="toggleCustomCascadeDropdown(event, '${team.id}_${index}')" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-1.5 text-xs font-bold text-white text-left flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-650 overflow-hidden">
+                <button type="button" onclick="toggleCustomCascadeDropdown(event, '\({team.id}_\){index}')" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-1.5 text-xs font-bold text-white text-left flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-650 overflow-hidden">
                     <span class="truncate block flex-1 pr-1">${selectedNameDisplay}</span>
                     <i class="fa-solid fa-chevron-down text-[10px] text-gray-400 shrink-0"></i>
                 </button>
 
-                <!-- BẢNG NHÓM CHA: KHÓA CHIỀU CAO 222PX GỌN GÀNG VỪA KHÍT BẢNG -->
-                <div id="cascade_dropdown_${team.id}_${index}" class="cascade-menu-root hidden absolute left-0 ${rootPositionClass} w-60 h-[222px] bg-gray-955 border-2 border-purple-500 rounded-xl shadow-2xl z-[9999] py-1 font-bold select-none overflow-visible flex flex-col justify-between">
-                    <div onclick="selectMemberFromCascade('${team.id}', ${index}, '')" class="px-3.5 py-1 hover:bg-rose-900/60 text-rose-300 cursor-pointer text-xs border-b border-gray-800 flex items-center gap-2 shrink-0">
+                <div id="cascade_dropdown_\({team.id}_\){index}" class="cascade-menu-root hidden absolute left-0 ${rootPositionClass} w-60 h-[222px] bg-gray-955 border-2 border-purple-500 rounded-xl shadow-2xl z-[9999] py-1 font-bold select-none overflow-visible flex flex-col justify-between">
+                    <div onclick="selectMemberFromCascade('\({team.id}',\){index}, '')" class="px-3.5 py-1 hover:bg-rose-900/60 text-rose-300 cursor-pointer text-xs border-b border-gray-800 flex items-center gap-2 shrink-0">
                         <i class="fa-solid fa-ban"></i> -- Bỏ chọn vị trí này --
                     </div>
                     <div class="flex-1 flex flex-col justify-around py-0.5">
         `;
 
-        let dataTeams = systemDatabase.teams.filter(x => x.type === 'data');
+        let dataTeams = systemDatabase.teams.filter(function(x) { return x.type === 'data'; });
 
-        dataTeams.forEach((sTeam) => {
+        dataTeams.forEach(function(sTeam) {
             let validMembersInGroup = [];
-            sTeam.memberIds.forEach(mId => {
+            sTeam.memberIds.forEach(function(mId) {
                 let m = systemDatabase.members[mId];
                 if (!m || !m.name) return;
 
-                // 1. LỌC TUYỆT ĐỐI: NẾU TÀI KHOẢN ĐÃ ĐƯỢC CHỌN Ở SLOT KHÁC TRONG CÙNG TEAM NÀY -> ẨN LUÔN
-                let isAlreadyInAnotherSlot = team.memberIds.some((otherId, otherIdx) => otherIdx !== index && otherId === mId);
+                let isAlreadyInAnotherSlot = team.memberIds.some(function(otherId, otherIdx) { return otherIdx !== index && otherId === mId; });
                 if (isAlreadyInAnotherSlot) return;
 
-                // 2. KIỂM TRA LƯỢT KHẢ DỤNG CÒN LẠI
                 let capacityLeft = slotTempCapacityMap[mId] !== undefined ? slotTempCapacityMap[mId] : 0;
                 
                 if (mId === selectedMemberId || capacityLeft > 0) {
@@ -258,19 +275,18 @@ function renderLineupViewTableLayout(team, targetWrapper) {
                         <span class="font-black leading-tight"><i class="fa-solid fa-folder text-amber-400 mr-2 group-hover/subitem:text-white"></i>${sTeam.name.toUpperCase()}</span>
                         <i class="fa-solid fa-chevron-right text-[10px] opacity-70"></i>
 
-                        <!-- BẢNG TÀI KHOẢN CON: CẦU ĐỆM HOVER (before:-left-4) CHỐNG MẤT MENU KHI RÊ CHUỘT SANG -->
                         <div class="hidden group-hover/subitem:flex flex-col absolute left-[calc(100%-2px)] top-0 w-72 h-[222px] bg-gray-955 border-2 border-amber-500 rounded-xl shadow-2xl py-1 overflow-y-auto custom-scrollbar z-[10000] before:absolute before:-left-4 before:top-0 before:bottom-0 before:w-4 before:content-['']">
                 `;
 
-                validMembersInGroup.forEach(item => {
+                validMembersInGroup.forEach(function(item) {
                     let m = item.member;
                     let cap = item.cap;
                     let isSelected = m.id === selectedMemberId;
-                    let capText = cap > 0 ? `(Còn ${cap}/${m.maxRuns} lượt)` : `(Đã max)`;
+                    let capText = cap > 0 ? `(Còn \({cap}/\){m.maxRuns} lượt)` : `(Đã max)`;
                     let fullTitle = (typeof getMemberFullDisplayTitle === 'function') ? getMemberFullDisplayTitle(m, sTeam) : m.name;
 
                     customDropdownHtml += `
-                        <div onclick="selectMemberFromCascade('${team.id}', ${index}, '${m.id}')" class="px-3.5 py-1 hover:bg-purple-600 hover:text-white cursor-pointer flex items-center justify-between text-xs ${isSelected ? 'bg-purple-900 text-emerald-300 font-black' : 'text-gray-100 font-semibold'} border-b border-gray-800/40 shrink-0">
+                        <div onclick="selectMemberFromCascade('\({team.id}',\){index}, '\({m.id}')" class="px-3.5 py-1 hover:bg-purple-600 hover:text-white cursor-pointer flex items-center justify-between text-xs\){isSelected ? 'bg-purple-900 text-emerald-300 font-black' : 'text-gray-100 font-semibold'} border-b border-gray-800/40 shrink-0">
                             <span class="truncate pr-2">${fullTitle}</span>
                             <span class="text-[10px] text-amber-300 font-bold shrink-0">${capText}</span>
                         </div>
@@ -290,38 +306,38 @@ function renderLineupViewTableLayout(team, targetWrapper) {
             </div>
         `;
 
+        // NÚT COPY TÊN NHÂN VẬT GỐC
+        let copyBtnHtml = (boundMember && boundMember.name)
+            ? `<button type="button" onmousedown="event.stopPropagation()" onclick="copyLineupMemberName('\({boundMember.name}')" class="w-7 h-7 bg-gray-700 hover:bg-cyan-600 text-gray-300 hover:text-white rounded-lg flex items-center justify-center transition border border-gray-600 cursor-pointer shadow mx-auto" title="Copy tên:\){boundMember.name}"><i class="fa-regular fa-copy text-xs"></i></button>`
+            : `<span class="text-gray-600 text-xs block text-center">-</span>`;
+
         let progressBarMeter = `<span class="text-gray-600 italic text-[11px] px-4 block text-center">- Trống -</span>`;
         if (boundMember) {
             let maxRuns = parseInt(boundMember.maxRuns) || 3;
             let curRuns = parseInt(boundMember.currentRuns) || 0;
             let isAllCompleted = curRuns >= maxRuns;
 
-            // XÂY DỰNG TỪNG PHÂN ĐOẠN ĐỘC LẬP THEO TỪNG LƯỢT ĐI (LƯỢT 1, 2, 3)
             let segmentsHtml = "";
             for (let r = 1; r <= maxRuns; r++) {
                 if (r <= curRuns) {
                     let f = (boundMember.failures && boundMember.failures[r]) ? boundMember.failures[r] : null;
 
                     if (f && (f.type === 'zero' || f.nl === 0)) {
-                        // 1. THẤT BẠI 0 NL: MÀU ĐỎ VÀ NHÁY NHANH
                         segmentsHtml += `
                             <div class="flex-1 h-full bg-rose-600" style="animation: fastFlashRedAlert 0.5s infinite ease-in-out;" title="Lượt ${r}: Thất bại từ đầu (0 NL)"></div>
                         `;
                     } else if (f && (f.type === 'half' || f.nl > 0)) {
-                        // 2. THẤT BẠI CÓ NL (NỬA NL): MÀU ĐỎ TĨNH KHÔNG NHÁY
                         segmentsHtml += `
-                            <div class="flex-1 h-full bg-rose-600" title="Lượt ${r}: Thất bại ở cuối (${f.nl} NL)"></div>
+                            <div class="flex-1 h-full bg-rose-600" title="Lượt \({r}: Thất bại ở cuối (\){f.nl} NL)"></div>
                         `;
                     } else {
-                        // 3. THÀNH CÔNG LƯỢT R: MÀU XANH SHIMMER
                         let greenBg = isAllCompleted ? "bg-emerald-500" : "bg-teal-500";
                         let glow = !isAllCompleted ? `background: linear-gradient(90deg, #0d9488 0%, #14b8a6 25%, #2dd4bf 50%, #5eead4 75%, #0d9488 100%); background-size: 200% 100%; animation: shimmerWaveSmooth 2.8s infinite linear; animation-delay: ${rowWaveDelay};` : "";
                         segmentsHtml += `
-                            <div class="flex-1 h-full ${greenBg}" style="${glow}" title="Lượt ${r}: Thành công"></div>
+                            <div class="flex-1 h-full \({greenBg}" style="\){glow}" title="Lượt ${r}: Thành công"></div>
                         `;
                     }
                 } else {
-                    // 4. LƯỢT CHƯA ĐI: TRONG SUỐT / NỀN TỐI
                     segmentsHtml += `
                         <div class="flex-1 h-full bg-transparent" title="Lượt ${r}: Chưa thực hiện"></div>
                     `;
@@ -331,8 +347,10 @@ function renderLineupViewTableLayout(team, targetWrapper) {
             let rawMemberObj = systemDatabase.members[selectedMemberId] || boundMember;
             let mRuns = parseInt(rawMemberObj.merchantRuns) || 0;
             let isMerchantDone = (mRuns >= 3);
+
+            // HUY HIỆU THƯƠNG NHÂN: GHIM CỐ ĐỊNH Ở ĐẦU Ô TIẾN ĐỘ (MÉP TRÁI)
             let merchantBadgeHtml = isMerchantDone
-                ? `<span class="bg-amber-950 text-amber-300 border border-amber-400 px-1.5 py-0.5 rounded text-[9px] font-black ml-1.5 inline-flex items-center gap-1 shadow-md shrink-0" title="Đã hoàn thành 3/3 lượt Thương Nhân"><i class="fa-solid fa-gem text-[8px] text-amber-400"></i> TN</span>`
+                ? `<span class="absolute left-1.5 top-1/2 -translate-y-1/2 bg-amber-955 text-amber-300 border border-amber-400 px-1 py-0.5 rounded text-[9px] font-black inline-flex items-center gap-0.5 shadow-md shrink-0 pointer-events-none z-20" title="Đã hoàn thành 3/3 lượt Thương Nhân"><i class="fa-solid fa-gem text-[8px] text-amber-400"></i> TN</span>`
                 : "";
 
             progressBarMeter = `
@@ -342,9 +360,9 @@ function renderLineupViewTableLayout(team, targetWrapper) {
                         <div class="absolute inset-0 flex divide-x divide-gray-900/90 transition-all duration-300">
                             ${segmentsHtml}
                         </div>
+                        ${merchantBadgeHtml}
                         <div class="z-10 flex items-center justify-center text-[11px] text-white font-black drop-shadow pointer-events-none">
-                            <span>${boundMember.currentRuns}/${boundMember.maxRuns}</span>
-                            ${merchantBadgeHtml}
+                            <span>\({boundMember.currentRuns}/\){boundMember.maxRuns}</span>
                         </div>
                     </div>
                 </div>`;
@@ -364,7 +382,7 @@ function renderLineupViewTableLayout(team, targetWrapper) {
             if (boundMember.maxRuns >= 2) {
                 colL2Html = `
                     <div class="flex items-center justify-center" onmousedown="event.stopPropagation()">
-                        <select id="select-lineup-paymode-${boundMember.id}-2" onchange="handleLineupMemberPayModeChange('${boundMember.id}', 2, this.value)" class="bg-gray-900 border border-gray-700 text-purple-300 font-bold rounded px-2 py-1.5 text-[11px] focus:outline-none cursor-pointer w-[110px] text-center shadow-inner">
+                        <select id="select-lineup-paymode-\({boundMember.id}-2" onchange="handleLineupMemberPayModeChange('\){boundMember.id}', 2, this.value)" class="bg-gray-900 border border-gray-700 text-purple-300 font-bold rounded px-2 py-1.5 text-[11px] focus:outline-none cursor-pointer w-[110px] text-center shadow-inner">
                             <option value="np50" ${modeL2 === 'np50' ? 'selected' : ''}>-50 NP</option>
                             <option value="ticket" ${modeL2 === 'ticket' ? 'selected' : ''}>-Vé</option>
                             <option value="xu40" ${modeL2 === 'xu40' ? 'selected' : ''}>-40 Xu</option>
@@ -374,7 +392,7 @@ function renderLineupViewTableLayout(team, targetWrapper) {
             if (boundMember.maxRuns >= 3) {
                 colL3Html = `
                     <div class="flex items-center justify-center" onmousedown="event.stopPropagation()">
-                        <select id="select-lineup-paymode-${boundMember.id}-3" onchange="handleLineupMemberPayModeChange('${boundMember.id}', 3, this.value)" class="bg-gray-900 border border-gray-700 text-cyan-300 font-bold rounded px-2 py-1.5 text-[11px] focus:outline-none cursor-pointer w-[110px] text-center shadow-inner">
+                        <select id="select-lineup-paymode-\({boundMember.id}-3" onchange="handleLineupMemberPayModeChange('\){boundMember.id}', 3, this.value)" class="bg-gray-900 border border-gray-700 text-cyan-300 font-bold rounded px-2 py-1.5 text-[11px] focus:outline-none cursor-pointer w-[110px] text-center shadow-inner">
                             <option value="np50" ${modeL3 === 'np50' ? 'selected' : ''}>-50 NP</option>
                             <option value="ticket" ${modeL3 === 'ticket' ? 'selected' : ''}>-Vé</option>
                             <option value="xu40" ${modeL3 === 'xu40' ? 'selected' : ''}>-40 Xu</option>
@@ -384,11 +402,12 @@ function renderLineupViewTableLayout(team, targetWrapper) {
         }
 
         html += `
-            <tr draggable="true" ondragstart="onRowDragStart(event, ${index})" ondragover="onRowDragOver(event)" ondragleave="onRowDragLeave(event)" ondrop="onRowDrop(event, ${index})" class="hover:bg-gray-800/40 transition border-l-2 border-transparent hover:border-purple-500">
+            <tr draggable="true" ondragstart="onRowDragStart(event, \({index})" ondragover="onRowDragOver(event)" ondragleave="onRowDragLeave(event)" ondrop="onRowDrop(event,\){index})" class="hover:bg-gray-800/40 transition border-l-2 border-transparent hover:border-purple-500">
                 <td class="p-2 text-center font-mono text-gray-500 font-bold align-middle cursor-move whitespace-nowrap ${isMaxRuns ? 'opacity-50' : ''}">
                     <span class="inline-flex items-center justify-center gap-1"><i class="fa-solid fa-bars text-[10px] opacity-40"></i>${visibleRowCounter++}</span>
                 </td>
                 <td class="p-2 align-middle overflow-visible">${customDropdownHtml}</td>
+                <td class="p-1 align-middle text-center">${copyBtnHtml}</td>
                 <td class="p-1 align-middle text-center">${nganPhieuCellHtml}</td>
                 <td class="p-2 align-middle text-center">${progressBarMeter}</td>
                 <td class="p-2 align-middle text-center">${colL2Html}</td>
@@ -436,7 +455,7 @@ function adjustRunsCounter(memberId, step) {
     if (targetValue < 0) return;
     if (targetValue > m.maxRuns && step > 0) {
         if (typeof logUserAction === 'function') {
-            logUserAction(`Tài khoản [ ${m.name} ] đã chạm giới hạn ${m.maxRuns} lượt Thái Hư/ngày!`);
+            logUserAction(`Tài khoản [ \({m.name} ] đã chạm giới hạn\){m.maxRuns} lượt Thái Hư/ngày!`);
         } else {
             alert(`Đã chạm giới hạn ${m.maxRuns} lượt cấu hình ngày!`);
         }
@@ -467,7 +486,7 @@ function adjustRunsCounter(memberId, step) {
     if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
 
     if (typeof logUserAction === 'function') {
-        logUserAction(`Tiến độ Thái Hư [ ${m.name} ]: ${m.currentRuns}/${m.maxRuns} lượt (Ngân Phiếu: ${m.nganPhieu})`);
+        logUserAction(`Tiến độ Thái Hư [ \({m.name} ]:\){m.currentRuns}/\({m.maxRuns} lượt (Ngân Phiếu:\){m.nganPhieu})`);
     }
 }
 window.adjustRunsCounter = adjustRunsCounter;
@@ -476,7 +495,7 @@ function toggleCustomCascadeDropdown(e, key) {
     e.stopPropagation();
     let menu = document.getElementById(`cascade_dropdown_${key}`);
     let allMenus = document.querySelectorAll('.cascade-menu-root');
-    allMenus.forEach(m => {
+    allMenus.forEach(function(m) {
         if (m !== menu) m.classList.add('hidden');
     });
     if (menu) menu.classList.toggle('hidden');
@@ -484,24 +503,24 @@ function toggleCustomCascadeDropdown(e, key) {
 
 function selectMemberFromCascade(teamId, slotIndex, selectedMemberId) {
     let allMenus = document.querySelectorAll('.cascade-menu-root');
-    allMenus.forEach(m => m.classList.add('hidden'));
+    allMenus.forEach(function(m) { m.classList.add('hidden'); });
 
     if (typeof handleLineupSelectChange === 'function') {
         handleLineupSelectChange(teamId, slotIndex, selectedMemberId);
     }
 }
 
-document.addEventListener('click', () => {
+document.addEventListener('click', function() {
     let allMenus = document.querySelectorAll('.cascade-menu-root');
-    allMenus.forEach(m => m.classList.add('hidden'));
+    allMenus.forEach(function(m) { m.classList.add('hidden'); });
 });
 
 function incrementAllLineupTeamRuns(teamId) {
-    let team = systemDatabase.teams.find(t => t.id === teamId);
+    let team = systemDatabase.teams.find(function(t) { return t.id === teamId; });
     if (!team || !team.memberIds) return;
 
     let updatedCount = 0;
-    team.memberIds.forEach(mId => {
+    team.memberIds.forEach(function(mId) {
         if (!mId) return;
         let m = systemDatabase.members[mId];
         if (m && m.currentRuns < m.maxRuns) {
@@ -516,7 +535,7 @@ function incrementAllLineupTeamRuns(teamId) {
         if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
         
         if (typeof logUserAction === 'function') {
-            logUserAction(`Đã +1 lượt đi cho toàn bộ [ ${team.name.toUpperCase()} ] (${updatedCount} tài khoản)`);
+            logUserAction(`Đã +1 lượt đi cho toàn bộ [ \({team.name.toUpperCase()} ] (\){updatedCount} tài khoản)`);
         }
     }
 }
@@ -528,17 +547,16 @@ function handleLineupSelectChange(teamId, slotIndex, selectedMemberId) {
     
     if (typeof logUserAction === 'function') {
         let m = systemDatabase && systemDatabase.members ? systemDatabase.members[selectedMemberId] : null;
-        let teamObj = systemDatabase && systemDatabase.teams ? systemDatabase.teams.find(x => x.id === teamId) : null;
+        let teamObj = systemDatabase && systemDatabase.teams ? systemDatabase.teams.find(function(x) { return x.id === teamId; }) : null;
         let teamName = teamObj ? teamObj.name.toUpperCase() : "ĐỘI HÌNH XẾP";
         
         if (m && m.name) {
-            logUserAction(`Gán tài khoản [ ${m.name} ] vào ${teamName} (Vị trí ${slotIndex + 1})`);
+            logUserAction(`Gán tài khoản [ \({m.name} ] vào\){teamName} (Vị trí ${slotIndex + 1})`);
         } else {
-            logUserAction(`Bỏ gán tài khoản khỏi ${teamName} (Vị trí ${slotIndex + 1})`);
+            logUserAction(`Bỏ gán tài khoản khỏi \({teamName} (Vị trí\){slotIndex + 1})`);
         }
     }
 }
 
+window.renderLineupViewTableLayout = renderLineupViewTableLayout;
 window.handleLineupMemberPayModeChange = handleLineupMemberPayModeChange;
-
-// Tổng số dòng code trong file này: 330 dòng.
