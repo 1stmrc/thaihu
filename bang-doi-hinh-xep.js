@@ -1,66 +1,56 @@
 // Tên file: bang-doi-hinh-xep.js
-// Chức năng: Bảng Đội Hình Xếp - Phân đoạn tiến độ độc lập theo từng lượt đi (Lượt 1, 2, 3), nhận diện trực quan: Thất bại 0 NL (Đỏ nháy nhanh), Thất bại có NL (Đỏ tĩnh không nháy), Thành công (Xanh ngọc shimmer/Emerald), khóa cố định menu tài khoản con luôn song song kế bên bảng nhóm (kích thước chuẩn 222px), tích hợp cầu đệm di chuột chống mất menu khi rê ngang, lọc tuyệt đối không cho 1 tài khoản xuất hiện 2 lần trong cùng 1 đội hình, định vị thông minh Hàng 1-5 mở xuống / Hàng 6-8 mở lên (triệt tiêu 100% lỗi che tiêu đề và thanh tab), tính toán chính xác lượt khả dụng cho mọi loại tài khoản (Max 2, Max 3), hiển thị huy hiệu [💎 TN] ở đầu ô tiến độ, nút Copy tên nhân vật gốc, +1 tiến độ Thái Hư tự động +4 Ngân Phiếu, thanh bấm giờ trực quan và tính lời lỗ.
+// Chức năng: Bảng Đội Hình Xếp - Phân đoạn tiến độ độc lập theo từng lượt đi (Lượt 1, 2, 3), nhận diện trực quan: Thất bại 0 NL (Đỏ nháy nhanh), Thất bại có NL (Đỏ tĩnh không nháy), Thành công (Xanh ngọc shimmer/Emerald), khóa cố định menu tài khoản con luôn song song kế bên bảng nhóm (kích thước chuẩn 222px), tích hợp cầu đệm di chuột chống mất menu khi rê ngang, lọc tuyệt đối không cho 1 tài khoản xuất hiện 2 lần trong cùng 1 đội hình, định vị thông minh Hàng 1-5 mở xuống / Hàng 6-8 mở lên (triệt tiêu 100% lỗi che tiêu đề và thanh tab), tính toán chính xác lượt khả dụng cho mọi loại tài khoản (Max 2, Max 3), hiển thị huy hiệu [💎 TN] ở đầu ô tiến độ, nút Copy tên nhân vật gốc (Chống trượt click 100%), +1 tiến độ Thái Hư tự động +4 Ngân Phiếu, thanh bấm giờ trực quan và tính lời lỗ.
 // Con của file: giao-dien-thai-hu.js
 
 if (typeof window.activeTeamRunningTimers === 'undefined') {
     window.activeTeamRunningTimers = {};
 }
 
-// HÀM COPY ĐỘNG THEO VỊ TRÍ SLOT - ĂN NGAY LẦN CLICK ĐẦU VÀ KHÔNG BAO GIỜ NHẦM TÊN
-function copyLineupMemberBySlot(teamId, slotIndex, event) {
+// HÀM SAO CHÉP TÊN NHÂN VẬT GỐC VÀO CLIPBOARD - ĐỒNG BỘ 100% ĂN NGAY LẦN CLICK ĐẦU TIÊN
+function copyLineupMemberName(name, event) {
     if (event) {
         event.stopPropagation();
         if (event.preventDefault) event.preventDefault();
     }
-
-    if (typeof systemDatabase === 'undefined' || !systemDatabase.teams || !systemDatabase.members) return;
-
-    let teamsList = Array.isArray(systemDatabase.teams) ? systemDatabase.teams : Object.values(systemDatabase.teams);
-    let team = teamsList.find(function(t) { return String(t.id) === String(teamId); });
-    if (!team || !team.memberIds) return;
-
-    let memberId = team.memberIds[slotIndex];
-    if (!memberId) return;
-
-    let member = systemDatabase.members[memberId];
-    if (!member || !member.name) return;
-
-    let textToCopy = member.name.trim();
-
-    // 1. Dùng thẻ input ẩn đồng bộ để ghi trực tiếp vào Clipboard
-    let tempInput = document.createElement('input');
-    tempInput.setAttribute('value', textToCopy);
-    tempInput.style.position = 'fixed';
-    tempInput.style.left = '-9999px';
-    tempInput.style.top = '0px';
-    tempInput.style.opacity = '0';
-    document.body.appendChild(tempInput);
-
-    tempInput.focus();
-    tempInput.select();
-    tempInput.setSelectionRange(0, 99999);
+    if (!name || name === '-- Chọn bot --' || name === '-- Trống --') return;
 
     let success = false;
+
+    // Cơ chế 1: Dùng input ẩn cưỡng bức chọn vùng chọn (Chạy đồng bộ, ăn ngay lập tức)
     try {
+        let tempInput = document.createElement('input');
+        tempInput.setAttribute('value', name);
+        tempInput.style.position = 'fixed';
+        tempInput.style.left = '-9999px';
+        tempInput.style.top = '0px';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        
+        tempInput.focus();
+        tempInput.select();
+        tempInput.setSelectionRange(0, 99999);
+        
         success = document.execCommand('copy');
+        document.body.removeChild(tempInput);
     } catch (err) {
         success = false;
     }
-    document.body.removeChild(tempInput);
 
-    // 2. Dự phòng thêm navigator.clipboard
+    // Cơ chế 2: Bổ trợ thêm navigator.clipboard nếu trình duyệt hỗ trợ
     if (!success && navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(textToCopy).then(function() {
-            if (typeof logUserAction === 'function') logUserAction('Đã Copy Tên TK Gốc: ' + textToCopy);
+        navigator.clipboard.writeText(name).then(function() {
+            if (typeof logUserAction === 'function') logUserAction('Đã Copy Tên TK Gốc: ' + name);
+        }).catch(function() {
+            // Không làm gì nếu thất bại
         });
         return;
     }
 
     if (success && typeof logUserAction === 'function') {
-        logUserAction('Đã Copy Tên TK Gốc: ' + textToCopy);
+        logUserAction('Đã Copy Tên TK Gốc: ' + name);
     }
 }
-window.copyLineupMemberBySlot = copyLineupMemberBySlot;
+window.copyLineupMemberName = copyLineupMemberName;
 
 /* ==========================================================================
    KHỐI 1: [ĐÃ KHÓA] WIDGET BẤM GIỜ, KỶ LỤC & CỤM NÚT THỐNG KÊ + TÍNH LỜI LỖ
@@ -205,7 +195,7 @@ function handleLineupMemberPayModeChange(memberId, runLevel, modeValue) {
    Chức năng: 
      - Phân chia thanh tiến độ thành từng ô riêng biệt (Lượt 1, Lượt 2, Lượt 3).
      - Từng lượt tự nhận diện: Thất bại 0 NL (Đỏ nháy nhanh), Thất bại có NL (Đỏ tĩnh không nháy), Thành công (Xanh).
-     - Nút Copy tên nhân vật gốc độc lập.
+     - Nút Copy tên nhân vật gốc độc lập (Chống trượt click 100%).
      - Huy hiệu [💎 TN] chuyển về đứng cố định ở sát mép trái đầu ô tiến độ.
      - Lọc sạch 100% tài khoản đã chọn trong team, không cho phép hiển thị ở các slot khác của cùng team.
      - Cầu đệm di chuột (Hover Bridge) kết nối liền mạch bảng nhóm và bảng con, rê ngang không bao giờ mất.
@@ -319,9 +309,9 @@ function renderLineupViewTableLayout(team, targetWrapper) {
                 '</div>' +
             '</div>';
 
-        // NÚT COPY TÊN NHÂN VẬT GỐC
+        // NÚT COPY TÊN NHÂN VẬT GỐC (TRUYỀN THÊM EVENT ĐỂ CHẶN BUBBLE)
         let copyBtnHtml = (boundMember && boundMember.name)
-            ? '<button type="button" onmousedown="event.stopPropagation()" onclick="copyLineupMemberName(\'' + boundMember.name + '\')" class="w-7 h-7 bg-gray-700 hover:bg-cyan-600 text-gray-300 hover:text-white rounded-lg flex items-center justify-center transition border border-gray-600 cursor-pointer shadow mx-auto" title="Copy tên: ' + boundMember.name + '"><i class="fa-regular fa-copy text-xs"></i></button>'
+            ? '<button type="button" onmousedown="event.stopPropagation()" onclick="copyLineupMemberName(\'' + boundMember.name + '\', event)" class="w-7 h-7 bg-gray-700 hover:bg-cyan-600 text-gray-300 hover:text-white rounded-lg flex items-center justify-center transition border border-gray-600 cursor-pointer shadow mx-auto" title="Copy tên: ' + boundMember.name + '"><i class="fa-regular fa-copy text-xs"></i></button>'
             : '<span class="text-gray-600 text-xs block text-center">-</span>';
 
         let progressBarMeter = '<span class="text-gray-600 italic text-[11px] px-4 block text-center">- Trống -</span>';
