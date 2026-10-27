@@ -26,7 +26,7 @@ function injectHeaderComponent() {
             <div class="flex items-center justify-between pb-1 ${isCollapsed ? '' : 'border-b border-gray-700/60 mb-2'} cursor-pointer" onclick="toggleHeaderCollapseState()" title="Nhấn để Ẩn/Hiện toàn bộ khung cấu hình biến số">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-sliders text-amber-400 text-xs"></i>
-                    <span class="text-gray-300 font-bold text-xs uppercase tracking-wide">CẤU HÌNH BIẾN SỐ &amp; HỆ THỐNG</span>
+                    <span class="text-gray-300 font-bold text-xs uppercase tracking-wide">CẤU HÌNH BIẾN SỐ & HỆ THỐNG</span>
                     <span id="header-mini-status-preview" class="text-[11px] text-gray-400 font-mono ${isCollapsed ? 'inline-block' : 'hidden'}">
                         (Giá NL: <b class="text-yellow-400">${savedMatPrice}</b> | 1K Vàng: <b class="text-green-400">${savedGoldRate}</b> | Vé: <b class="text-red-400">${savedTicketPrice}</b>)
                     </span>
