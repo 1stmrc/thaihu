@@ -6,7 +6,7 @@ const SAT_THU_STORAGE_KEY = 'SYSTEM_SAT_THU_ANALYTICS_V1';
 let isSatThuStatsCollapsed = false;
 
 // 1. THÔNG SỐ ĐỘ CAO (CÁCH MÉP TRÊN MÀN HÌNH) - TÙY CHỈNH TẠI ĐÂY
-const SAT_THU_POPUP_TOP_POSITION = "200px"; // Đổi thành 150px, 170px, 180px tùy ý muốn
+const SAT_THU_POPUP_TOP_POSITION = "400px"; // Đổi thành 150px, 170px, 180px tùy ý muốn
 
 function isSatThuEventSessionActive() {
     let now = new Date();
