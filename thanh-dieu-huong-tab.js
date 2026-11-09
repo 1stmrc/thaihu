@@ -1,5 +1,5 @@
 // Tên file: thanh-dieu-huong-tab.js
-// Chức năng: Điều phối 6 Tab chính, ẩn sạch toàn bộ popup khi ở Sát Thủ, dọn sạch màu active cũ.
+// Chức năng: Điều phối 6 Tab chính, tự động thêm mũi tên chỉa xuống (▼) khi tab được chọn, đổi icon Sát Thủ tách màu, ẩn sạch popup.
 // Con của file: index.html
 
 const BAT_QUAI_SVG_ICON = `
@@ -38,15 +38,26 @@ function setActiveMainTabUI(activeKey) {
     Object.keys(TAB_BUTTON_IDS).forEach(key => {
         let btn = document.getElementById(TAB_BUTTON_IDS[key]);
         if (btn) {
-            btn.className = (key === activeKey) ? TAB_ACTIVE_STYLES[key] : INACTIVE_CLASS;
+            let isCurrentActive = (key === activeKey);
+            btn.className = isCurrentActive ? TAB_ACTIVE_STYLES[key] : INACTIVE_CLASS;
+
+            // Xóa mũi tên cũ nếu có
+            let oldArrow = btn.querySelector('.tab-down-arrow');
+            if (oldArrow) oldArrow.remove();
+
+            // Nếu đang active: thêm mũi tên nhỏ chỉa xuống
+            if (isCurrentActive) {
+                let arrowSpan = document.createElement('span');
+                arrowSpan.className = "tab-down-arrow ml-0.5 text-[10px] text-white/90 animate-bounce";
+                arrowSpan.innerHTML = '<i class="fa-solid fa-caret-down"></i>';
+                btn.appendChild(arrowSpan);
+            }
         }
     });
 
-    // 1. TỰ ĐỘNG ẨN TẤT CẢ CÁC POPUP / BONG BÓNG KHI VÀO TAB SÁT THỦ
+    // Ẩn tất cả các popup nổi khi ở Tab Sát Thủ
     let floatingProfits = document.getElementById('floating-bubble-profit-container');
     let floatingDeo = document.getElementById('floating-bubble-deo-container');
-    
-    // Đóng toàn bộ các popup con nếu đang mở
     let cardProfit = document.getElementById('floating-profit-card');
     let cardMerchant = document.getElementById('floating-merchant-card');
     let cardFailed = document.getElementById('floating-failed-card');
@@ -68,7 +79,6 @@ function setActiveMainTabUI(activeKey) {
 function handleMainTabSwitch(target) {
     setActiveMainTabUI(target);
 
-    // Ẩn bảng view Sát Thủ khi sang tab khác
     let satThuView = document.getElementById('tab-content-quan-ly-sat-thu');
     if (satThuView && target !== 'satthu') {
         satThuView.classList.add('hidden');
@@ -115,9 +125,9 @@ function injectMainTabsComponent() {
                 <i class="fa-solid fa-coins text-amber-400"></i> Quản Lý Thương Nhân
             </button>
 
-            <!-- 3. SÁT THỦ -->
+            <!-- 3. SÁT THỦ (Icon màu trắng tinh tách biệt với nền đỏ) -->
             <button onclick="handleMainTabSwitch('satthu')" id="btn-main-tab-satthu" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
-                <i class="fa-solid fa-skull text-rose-500"></i> SÁT THỦ
+                <i class="fa-solid fa-skull text-white drop-shadow"></i> SÁT THỦ
             </button>
 
             <!-- 4. SO SÁNH TỐI ƯU -->
