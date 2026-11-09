@@ -1,5 +1,5 @@
 // Tên file: quan-ly-sat-thu.js
-// Chức năng: Quản lý Tab Sát Thủ - Đồng hồ số xanh ngọc (0/3 hiển thị --:--), mũi tên team vàng to, đồng bộ real-time với popup thống kê.
+// Chức năng: Quản lý Tab Sát Thủ - Giờ định dạng xHy nền xanh ngọc, click trực tiếp vào ô tiến độ để +1 lượt, bảng nền đỏ rượu.
 // Con của file: index.html
 
 let activeSatThuTeamId = null;
@@ -55,7 +55,7 @@ function initSatThuTableWorkspace() {
                             <tr class="text-rose-300/80 border-b border-rose-900/40 pb-2 uppercase text-[11px] font-bold">
                                 <th class="p-2.5 w-12 text-center">STT</th>
                                 <th class="p-2.5 w-[280px]">TÊN TÀI KHOẢN</th>
-                                <th class="p-2.5 w-24 text-center">CHECK</th>
+                                <th class="p-2.5 w-20 text-center">CHECK</th>
                                 <th class="p-2.5 text-center w-[230px]">TIẾN ĐỘ SÁT THỦ</th>
                                 <th class="p-2.5 w-14 text-center">KHÓA</th>
                                 <th class="p-2.5 w-14 text-center">COPY</th>
@@ -81,7 +81,6 @@ function renderSatThuMainUI() {
         activeSatThuTeamId = dataTeams[0].id;
     }
 
-    // VẼ CÁC NÚT TEAM A -> L KÈM MŨI TÊN VÀNG TO ▼
     let holder = document.getElementById('sat-thu-sub-tabs-holder');
     if (holder) {
         holder.innerHTML = dataTeams.map(t => {
@@ -125,22 +124,16 @@ function renderSatThuTableRows() {
         let isLocked = m.satThuLocked === true || m.satThuLocked === "true";
         let fullTitle = (typeof getMemberFullDisplayTitle === 'function') ? getMemberFullDisplayTitle(m, team) : (m.name || `Tài khoản ${index + 1}`);
 
-        // THỜI GIAN CHECK: 0 LƯỢT HIỆN --:--, CÓ LƯỢT HIỆN ĐỒNG HỒ XANH NGỌC SÁNG
+        // ĐỊNH DẠNG GIỜ xHy NỀN XANH NGỌC - BỎ HẲN CHỮ CHECK
         let timeBadgeHtml = "";
         if (runs === 0) {
             timeBadgeHtml = `
-                <div class="inline-flex flex-col items-center justify-center py-1 px-2.5 rounded-lg bg-gray-900/80 border border-gray-800 text-gray-500 font-mono text-[11px]">
-                    <span class="text-[8px] font-sans font-bold text-gray-600 uppercase tracking-tighter leading-none mb-0.5">CHƯA ĐI</span>
-                    <span class="font-bold tracking-widest leading-none">--:--</span>
-                </div>
+                <span class="inline-block py-1 px-2.5 rounded-lg bg-gray-900/80 border border-gray-800 text-gray-500 font-mono text-[11px] font-bold">0h</span>
             `;
         } else {
-            let clockStr = m.satThuCheckTime || "--:--";
+            let clockStr = m.satThuCheckTime || "0h";
             timeBadgeHtml = `
-                <div class="inline-flex flex-col items-center justify-center py-1 px-2.5 rounded-lg bg-emerald-600 border border-emerald-400 text-white font-mono shadow-[0_0_10px_rgba(16,185,129,0.4)]">
-                    <span class="text-[8px] font-sans font-black text-emerald-100 uppercase tracking-tighter leading-none mb-0.5 opacity-90">CHECK</span>
-                    <span class="font-black text-xs tracking-wider leading-none drop-shadow-sm">${clockStr}</span>
-                </div>
+                <span class="inline-block py-1 px-2.5 rounded-lg bg-emerald-600 border border-emerald-400 text-white font-mono font-black text-xs shadow-[0_0_8px_rgba(16,185,129,0.4)] tracking-wide">${clockStr}</span>
             `;
         }
 
@@ -156,22 +149,22 @@ function renderSatThuTableRows() {
                 <td class="p-2.5 text-center font-mono text-rose-400/80 font-bold">${index + 1}</td>
                 <td class="p-2.5 font-bold text-gray-100 truncate max-w-[280px]">${fullTitle}</td>
                 
-                <!-- CỘT CHECK THỜI GIAN -->
+                <!-- CỘT GIỜ CHECK xHy -->
                 <td class="p-2 text-center">
                     ${timeBadgeHtml}
                 </td>
 
-                <!-- TIẾN ĐỘ SÁT THỦ 3/3 -->
+                <!-- TIẾN ĐỘ: CHO PHÉP CLICK TRỰC TIẾP VÀO Ô GIỮA ĐỂ +1 TIẾN ĐỘ -->
                 <td class="p-2.5 text-center">
                     <div class="flex items-center justify-center gap-1.5 bg-[#100508] p-1 rounded-lg border border-rose-900/60 w-[210px] mx-auto shadow-inner">
-                        <button onclick="changeSatThuRunProgress('${m.id}', -1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-rose-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition shrink-0">-</button>
+                        <button onclick="changeSatThuRunProgress('${m.id}', -1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-rose-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition shrink-0" title="Trừ 1 lượt">-</button>
                         
-                        <div class="relative flex-1 h-6 rounded overflow-hidden bg-gray-950 border border-rose-950 flex items-center justify-center font-mono font-bold text-xs">
+                        <div onclick="${isLocked ? '' : `changeSatThuRunProgress('${m.id}', 1)`}" class="relative flex-1 h-6 rounded overflow-hidden bg-gray-955 border border-rose-950 flex items-center justify-center font-mono font-bold text-xs cursor-pointer hover:border-rose-500 transition select-none" title="Click để +1 tiến độ">
                             <div class="absolute left-0 top-0 h-full ${progressFillClass} transition-all duration-300" style="width: ${percent}%"></div>
-                            <span class="relative z-10 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">${runs} / 3</span>
+                            <span class="relative z-10 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] pointer-events-none">${runs} / 3</span>
                         </div>
 
-                        <button onclick="changeSatThuRunProgress('${m.id}', 1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-emerald-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition shrink-0">+</button>
+                        <button onclick="changeSatThuRunProgress('${m.id}', 1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-emerald-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition shrink-0" title="Cộng 1 lượt">+</button>
                     </div>
                 </td>
 
@@ -199,7 +192,7 @@ function renderSatThuTableRows() {
     tbody.innerHTML = rowsHtml;
 }
 
-// CẬP NHẬT TIẾN ĐỘ VÀ GHI MỐC THỜI GIAN THỰC TẾ DẠNG HH:MM
+// CẬP NHẬT TIẾN ĐỘ VÀ GHI MỐC THỜI GIAN ĐỊNH DẠNG xHy
 function changeSatThuRunProgress(mId, delta) {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.members) return;
     let m = systemDatabase.members[mId];
@@ -221,12 +214,12 @@ function changeSatThuRunProgress(mId, delta) {
             delete m.satThuTimestamp;
             delete m.satThuCompletedTimestamp;
         } else {
-            let hh = String(now.getHours()).padStart(2, '0');
+            // ĐỊNH DẠNG CHUẨN xHy (VD: 8h57, 20h15)
+            let hh = now.getHours();
             let mm = String(now.getMinutes()).padStart(2, '0');
-            m.satThuCheckTime = `${hh}:${mm}`;
+            m.satThuCheckTime = `${hh}h${mm}`;
             if (!m.satThuTimestamp) m.satThuTimestamp = nowMs;
 
-            // Đánh dấu mốc hoàn thành khi đạt 3/3
             if (next === 3) {
                 m.satThuCompletedTimestamp = nowMs;
             } else {
