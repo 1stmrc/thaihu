@@ -1,9 +1,12 @@
 // Tên file: popup-thong-ke-sat-thu.js
-// Chức năng: Widget Thống Kê Sát Thủ - Tọa độ hạ ngang đỉnh hàng sub-tabs Team, Master Hub dữ liệu chuẩn xác.
+// Chức năng: Widget Thống Kê Sát Thủ - Tọa độ hạ chuẩn xác bằng style.top (dễ tùy chỉnh), Master Hub dữ liệu chuẩn xác.
 // Con của file: index.html
 
 const SAT_THU_STORAGE_KEY = 'SYSTEM_SAT_THU_ANALYTICS_V1';
 let isSatThuStatsCollapsed = false;
+
+// 1. THÔNG SỐ ĐỘ CAO (CÁCH MÉP TRÊN MÀN HÌNH) - TÙY CHỈNH TẠI ĐÂY
+const SAT_THU_POPUP_TOP_POSITION = "165px"; // Đổi thành 150px, 170px, 180px tùy ý muốn
 
 function isSatThuEventSessionActive() {
     let now = new Date();
@@ -132,6 +135,11 @@ function getSatThuMasterAnalyticsData() {
 }
 
 function updatePopupPositionAndWidth() {
+    let widget = document.getElementById('sat-thu-stats-floating-widget');
+    if (widget) {
+        widget.style.top = SAT_THU_POPUP_TOP_POSITION;
+    }
+
     let card = document.getElementById('sat-thu-stats-main-card');
     if (!card || isSatThuStatsCollapsed) return;
 
@@ -151,8 +159,9 @@ function injectSatThuStatsPopupComponent() {
 
     let widget = document.createElement('div');
     widget.id = 'sat-thu-stats-floating-widget';
-    // ĐÃ HẠ XUỐNG top-[235px] NGANG HÀNG NÚT TEAM A -> TEAM L
-    widget.className = "fixed right-2.5 top-[135px] z-40 select-none transition-all duration-200 hidden font-sans";
+    // Xóa top-[...] trong class, cố định trực tiếp qua style.top để nhận lệnh chuẩn xác 100%
+    widget.className = "fixed right-2.5 z-40 select-none transition-all duration-200 hidden font-sans";
+    widget.style.top = SAT_THU_POPUP_TOP_POSITION;
 
     widget.innerHTML = `
         <button id="sat-thu-stats-toggle-btn" onclick="toggleSatThuStatsCollapse()" class="hidden fixed right-0 top-1/2 -translate-y-1/2 bg-[#05131a] hover:bg-cyan-950 border-l border-y border-cyan-400 text-cyan-300 w-6 h-12 rounded-l-lg shadow-[0_0_15px_rgba(6,182,212,0.5)] cursor-pointer flex items-center justify-center transition z-50 group" title="Mở lại Thống Kê Sát Thủ">
@@ -270,6 +279,7 @@ function showSatThuStatsPopup() {
     }
     if (widget) {
         widget.classList.remove('hidden');
+        widget.style.top = SAT_THU_POPUP_TOP_POSITION;
         let toggleBtn = document.getElementById('sat-thu-stats-toggle-btn');
         let mainCard = document.getElementById('sat-thu-stats-main-card');
         if (isSatThuStatsCollapsed) {
