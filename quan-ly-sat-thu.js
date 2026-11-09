@@ -192,7 +192,7 @@ function renderSatThuTableRows() {
     tbody.innerHTML = rowsHtml;
 }
 
-// CẬP NHẬT TIẾN ĐỘ VÀ GHI MỐC THỜI GIAN ĐỊNH DẠNG xHy
+// CẬP NHẬT TIẾN ĐỘ VÀ GHI MỐC THỜI GIAN ĐỊNH DẠNG xHy (ĐỒNG BỘ NGÂN PHIẾU REALTIME)
 function changeSatThuRunProgress(mId, delta) {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.members) return;
     let m = systemDatabase.members[mId];
@@ -204,6 +204,8 @@ function changeSatThuRunProgress(mId, delta) {
     if (next !== cur) {
         let diff = next - cur;
         m.satThuRuns = next;
+        
+        // 1. TỰ ĐỘNG +1 / -1 NGÂN PHIẾU CHO NHÂN VẬT ĐÓ
         m.nganPhieu = Math.max(0, (parseInt(m.nganPhieu) || 0) + diff);
 
         let now = new Date();
@@ -227,8 +229,15 @@ function changeSatThuRunProgress(mId, delta) {
             }
         }
 
+        // 2. VẼ LẠI BẢNG SÁT THỦ
         renderSatThuTableRows();
 
+        // 3. ĐỒNG BỘ HIỂN THỊ NGÂN PHIẾU SANG CÁC BẢNG KHÁC (Thái Hư & Đội Hình Xếp)
+        if (typeof renderActiveWorkspacePanel === 'function') renderActiveWorkspacePanel();
+        if (typeof renderLineupWorkspaceView === 'function') renderLineupWorkspaceView();
+        if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout();
+
+        // 4. CẬP NHẬT CÁC POPUP & LƯU BỘ NHỚ
         if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
         if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
         if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
