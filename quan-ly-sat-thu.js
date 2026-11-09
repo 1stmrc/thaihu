@@ -1,5 +1,5 @@
 // Tên file: quan-ly-sat-thu.js
-// Chức năng: Quản lý Tab Sát Thủ - Nền hơi đỏ, bỏ tiến độ tổng, tab team có mũi tên ▼, giờ nền xanh chữ trắng (0h khi chưa đi, xHy khi có lượt), tiến độ 3/3 chạy vạch màu % trực quan.
+// Chức năng: Quản lý Tab Sát Thủ - Đồng hồ số xanh ngọc (0/3 hiển thị --:--), mũi tên team vàng to, đồng bộ real-time với popup thống kê.
 // Con của file: index.html
 
 let activeSatThuTeamId = null;
@@ -23,9 +23,12 @@ function switchToSatThuTab() {
         satThuPanel.classList.remove('hidden');
         renderSatThuMainUI();
     }
+
+    if (typeof showSatThuStatsPopup === 'function') {
+        showSatThuStatsPopup();
+    }
 }
 
-// KHỞI TẠO BẢNG SÁT THỦ (ĐÃ BỎ THANH TIẾN ĐỘ TỔNG THEO YÊU CẦU)
 function initSatThuTableWorkspace() {
     let viewport = document.getElementById('active-panel-view-viewport');
     if (!viewport) return;
@@ -37,14 +40,14 @@ function initSatThuTableWorkspace() {
         panel.className = "w-full h-full flex flex-col gap-2 text-gray-200 select-none";
 
         panel.innerHTML = `
-            <!-- HÀNG SUB-TABS: TEAM A -> TEAM L CÓ MŨI TÊN ▼ -->
+            <!-- HÀNG SUB-TABS: TEAM A -> TEAM L CÓ MŨI TÊN VÀNG TO -->
             <div class="flex items-center justify-between gap-2 pb-1.5 border-b border-rose-900/40 shrink-0">
                 <div class="flex-1 overflow-x-auto no-scrollbar">
                     <div class="flex items-center gap-1.5 min-w-max" id="sat-thu-sub-tabs-holder"></div>
                 </div>
             </div>
 
-            <!-- BẢNG DỮ LIỆU NỀN HƠI ĐỎ (#16080c) -->
+            <!-- BẢNG DỮ LIỆU NỀN ĐỎ RƯỢU TỐI (#16080c) -->
             <div class="flex-1 overflow-hidden bg-[#16080c] rounded-xl border border-rose-950/70 p-2 flex flex-col shadow-2xl">
                 <div class="w-full overflow-y-auto custom-scrollbar flex-1">
                     <table class="w-full text-left text-xs border-collapse table-fixed">
@@ -78,7 +81,7 @@ function renderSatThuMainUI() {
         activeSatThuTeamId = dataTeams[0].id;
     }
 
-    // VẼ CÁC NÚT TEAM A -> L KÈM MŨI TÊN ▼ CHỈA XUỐNG KHI ĐƯỢC CHỌN
+    // VẼ CÁC NÚT TEAM A -> L KÈM MŨI TÊN VÀNG TO ▼
     let holder = document.getElementById('sat-thu-sub-tabs-holder');
     if (holder) {
         holder.innerHTML = dataTeams.map(t => {
@@ -87,13 +90,16 @@ function renderSatThuMainUI() {
                 <button onclick="selectSatThuSubTeam('${t.id}')" class="px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${isActive ? 'bg-rose-600 text-white shadow-md border border-rose-400/50' : 'bg-[#220d14] text-rose-300/70 border border-rose-950 hover:text-white hover:bg-rose-900/50'}">
                     <i class="fa-solid fa-users text-[10px]"></i>
                     <span>${t.name.toUpperCase()}</span>
-                    ${isActive ? '<i class="fa-solid fa-caret-down text-[11px] ml-0.5 text-white animate-bounce"></i>' : ''}
+                    ${isActive ? '<i class="fa-solid fa-caret-down text-sm ml-1 text-amber-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] animate-bounce"></i>' : ''}
                 </button>
             `;
         }).join('');
     }
 
     renderSatThuTableRows();
+    if (typeof updateSatThuStatsDashboardUI === 'function') {
+        updateSatThuStatsDashboardUI();
+    }
 }
 
 function selectSatThuSubTeam(tId) {
@@ -101,7 +107,6 @@ function selectSatThuSubTeam(tId) {
     renderSatThuMainUI();
 }
 
-// VẼ CÁC HÀNG VỚI TIẾN ĐỘ CHẠY MÀU % VÀ GIỜ NỀN XANH
 function renderSatThuTableRows() {
     let tbody = document.getElementById('sat-thu-table-body-rows');
     if (!tbody || typeof systemDatabase === 'undefined') return;
@@ -120,14 +125,27 @@ function renderSatThuTableRows() {
         let isLocked = m.satThuLocked === true || m.satThuLocked === "true";
         let fullTitle = (typeof getMemberFullDisplayTitle === 'function') ? getMemberFullDisplayTitle(m, team) : (m.name || `Tài khoản ${index + 1}`);
 
-        // 1. GIỜ CHECK: NẾU CHƯA CÓ LƯỢT (0/3) THÌ LÀ "0h", CÓ LƯỢT THÌ HIỆN DẠNG "xHy"
-        let timeDisplay = (runs === 0) ? "0h" : (m.satThuCheckTime || "0h");
+        // THỜI GIAN CHECK: 0 LƯỢT HIỆN --:--, CÓ LƯỢT HIỆN ĐỒNG HỒ XANH NGỌC SÁNG
+        let timeBadgeHtml = "";
+        if (runs === 0) {
+            timeBadgeHtml = `
+                <div class="inline-flex flex-col items-center justify-center py-1 px-2.5 rounded-lg bg-gray-900/80 border border-gray-800 text-gray-500 font-mono text-[11px]">
+                    <span class="text-[8px] font-sans font-bold text-gray-600 uppercase tracking-tighter leading-none mb-0.5">CHƯA ĐI</span>
+                    <span class="font-bold tracking-widest leading-none">--:--</span>
+                </div>
+            `;
+        } else {
+            let clockStr = m.satThuCheckTime || "--:--";
+            timeBadgeHtml = `
+                <div class="inline-flex flex-col items-center justify-center py-1 px-2.5 rounded-lg bg-emerald-600 border border-emerald-400 text-white font-mono shadow-[0_0_10px_rgba(16,185,129,0.4)]">
+                    <span class="text-[8px] font-sans font-black text-emerald-100 uppercase tracking-tighter leading-none mb-0.5 opacity-90">CHECK</span>
+                    <span class="font-black text-xs tracking-wider leading-none drop-shadow-sm">${clockStr}</span>
+                </div>
+            `;
+        }
 
-        // 2. TÍNH PHẦN TRĂM TIẾN ĐỘ 3/3 ĐỂ CHẠY THANH MÀU
         let percent = Math.round((runs / 3) * 100);
-        let progressFillClass = "bg-rose-600";
-        if (runs === 3) progressFillClass = "bg-emerald-500";
-        else if (runs > 0) progressFillClass = "bg-rose-600";
+        let progressFillClass = (runs === 3) ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-600";
 
         let teamOptions = allDataTeams.map(t => `
             <option value="${t.id}" ${t.id === team.id ? 'selected' : ''} class="bg-gray-900 text-white">- ${t.name.toUpperCase()} -</option>
@@ -138,17 +156,16 @@ function renderSatThuTableRows() {
                 <td class="p-2.5 text-center font-mono text-rose-400/80 font-bold">${index + 1}</td>
                 <td class="p-2.5 font-bold text-gray-100 truncate max-w-[280px]">${fullTitle}</td>
                 
-                <!-- GIỜ CHECK: NỀN XANH BIỂN, CHỮ TRẮNG, TO DÀY THEO CHIỀU DỌC (py-1.5 px-3) -->
-                <td class="p-2.5 text-center">
-                    <span class="inline-block py-1.5 px-3 rounded-lg text-xs font-mono font-black bg-blue-600 text-white border border-blue-400/50 shadow-md tracking-wider">${timeDisplay}</span>
+                <!-- CỘT CHECK THỜI GIAN -->
+                <td class="p-2 text-center">
+                    ${timeBadgeHtml}
                 </td>
 
-                <!-- TIẾN ĐỘ SÁT THỦ 3/3: CÓ THANH FILL MÀU CHẠY ĐỘNG THEO % (0% -> 33% -> 66% -> 100%) -->
+                <!-- TIẾN ĐỘ SÁT THỦ 3/3 -->
                 <td class="p-2.5 text-center">
                     <div class="flex items-center justify-center gap-1.5 bg-[#100508] p-1 rounded-lg border border-rose-900/60 w-[210px] mx-auto shadow-inner">
                         <button onclick="changeSatThuRunProgress('${m.id}', -1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-rose-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition shrink-0">-</button>
                         
-                        <!-- Ô hiển thị tiến độ có thanh màu chạy bên trong -->
                         <div class="relative flex-1 h-6 rounded overflow-hidden bg-gray-950 border border-rose-950 flex items-center justify-center font-mono font-bold text-xs">
                             <div class="absolute left-0 top-0 h-full ${progressFillClass} transition-all duration-300" style="width: ${percent}%"></div>
                             <span class="relative z-10 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">${runs} / 3</span>
@@ -182,7 +199,7 @@ function renderSatThuTableRows() {
     tbody.innerHTML = rowsHtml;
 }
 
-// CẬP NHẬT TIẾN ĐỘ: NẾU VỀ 0 -> 0h, NẾU >0 -> LƯU MỐC GIỜ xHy
+// CẬP NHẬT TIẾN ĐỘ VÀ GHI MỐC THỜI GIAN THỰC TẾ DẠNG HH:MM
 function changeSatThuRunProgress(mId, delta) {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.members) return;
     let m = systemDatabase.members[mId];
@@ -196,16 +213,30 @@ function changeSatThuRunProgress(mId, delta) {
         m.satThuRuns = next;
         m.nganPhieu = Math.max(0, (parseInt(m.nganPhieu) || 0) + diff);
 
-        // Xử lý mốc giờ: 0 lượt là 0h, có lượt là giờ thực tế xHy
+        let now = new Date();
+        let nowMs = now.getTime();
+
         if (next === 0) {
-            m.satThuCheckTime = "0h";
+            delete m.satThuCheckTime;
+            delete m.satThuTimestamp;
+            delete m.satThuCompletedTimestamp;
         } else {
-            let now = new Date();
-            m.satThuCheckTime = `${now.getHours()}H${String(now.getMinutes()).padStart(2, '0')}`;
+            let hh = String(now.getHours()).padStart(2, '0');
+            let mm = String(now.getMinutes()).padStart(2, '0');
+            m.satThuCheckTime = `${hh}:${mm}`;
+            if (!m.satThuTimestamp) m.satThuTimestamp = nowMs;
+
+            // Đánh dấu mốc hoàn thành khi đạt 3/3
+            if (next === 3) {
+                m.satThuCompletedTimestamp = nowMs;
+            } else {
+                delete m.satThuCompletedTimestamp;
+            }
         }
 
         renderSatThuTableRows();
 
+        if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
         if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
         if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
         if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
@@ -221,6 +252,7 @@ function toggleSatThuLockMember(mId) {
 
     renderSatThuTableRows();
 
+    if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
     if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
     if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
     if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
