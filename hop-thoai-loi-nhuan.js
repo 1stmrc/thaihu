@@ -1,7 +1,7 @@
 // Tên file: hop-thoai-loi-nhuan.js
-// Chức năng: Pop-up Thu Nhập Tổng Đội Hình - Tự động đồng bộ EventManager để ngắt 100% nguyên liệu Thái Hư & Thương Nhân khi hết sự kiện, tính chuẩn vé theo từng acc, dàn hàng ngang song song với Thương Nhân & Thất Bại.
+// Chức năng: Pop-up Thu Nhập Tổng Đội Hình - Tự động đồng bộ EventManager để ngắt 100% nguyên liệu khi hết sự kiện, tính chuẩn vé theo từng acc, dàn hàng ngang song song với Thương Nhân & Thất Bại, tích hợp đồng bộ số liệu Sát Thủ (TH + TN + ST).
 // Con của file: index.html
-// Trạng thái: [ĐÃ FIX TRIỆT ĐỂ LỖI HẾT SỰ KIỆN VẪN TÍNH NGUYÊN LIỆU]
+// Trạng thái: [ĐÃ CẬP NHẬT ĐỒNG BỘ ĐẦY ĐỦ SÁT THỦ - BẢO TOÀN 100% LOGIC CŨ]
 
 /* ==========================================================================
    KHỐI 1: KHỞI TẠO VÀ INJECT GIAO DIỆN POPUP THU NHẬP TỔNG
@@ -38,7 +38,7 @@ function injectProfitCardComponent() {
                 </div>
                 <div class="text-[10px] text-gray-400 font-mono flex justify-between bg-gray-955 px-2 py-0.5 rounded border border-gray-800">
                     <span>↳ Nguồn NL:</span>
-                    <span id="runtime-materials-breakdown-text" class="text-amber-300">TH: 0 + TN: 0 NL</span>
+                    <span id="runtime-materials-breakdown-text" class="text-amber-300">TH: 0 + TN: 0 + ST: 0 NL</span>
                 </div>
 
                 <div class="flex justify-between">
@@ -88,6 +88,10 @@ function injectProfitCardComponent() {
                 <div class="flex justify-between items-center text-gray-300">
                     <span class="font-sans">Cộng Thương Nhân:</span>
                     <span id="runtime-merchant-profit" class="font-bold text-amber-400">+0.00v (~0 đ)</span>
+                </div>
+                <div class="flex justify-between items-center text-gray-300">
+                    <span class="font-sans">Cộng Sát Thủ:</span>
+                    <span id="runtime-satthu-profit" class="font-bold text-rose-400">+0.00v (~0 đ)</span>
                 </div>
             </div>
 
@@ -159,15 +163,13 @@ function handleProfitToggleChangeWithLog(label, isChecked) {
 }
 
 /* ==========================================================================
-   KHỐI 2: KIỂM TRA MỐC SỰ KIỆN GMT+7 (ĐÃ ĐỒNG BỘ EVENT MANAGER)
+   KHỐI 2: KIỂM TRA MỐC SỰ KIỆN GMT+7
    ========================================================================== */
 function isEventCurrentlyActiveGMT7() {
-    // 1. Ưu tiên kiểm tra trực tiếp qua EventManager
     if (typeof EventManager !== 'undefined' && typeof EventManager.isEventCurrentlyActiveGMT7 === 'function') {
         return EventManager.isEventCurrentlyActiveGMT7();
     }
 
-    // 2. Dự phòng kiểm tra theo localStorage và systemDatabase
     let startDate = localStorage.getItem('EVENT_START_DATE');
     let endDate = localStorage.getItem('EVENT_END_DATE');
 
@@ -215,7 +217,6 @@ function getRealtimeMerchantMetrics() {
     });
 
     let directGold = isMExcludeRefund ? 0 : (merchantRuns * 1.2);
-    // Hết sự kiện: nguyên liệu Thương Nhân cũng lập tức về 0
     let totalMaterials = isEventActive ? (merchantRuns * 8) : 0;
     let materialGold = totalMaterials * matPrice;
     let totalMerchantGold = directGold + materialGold;
@@ -228,7 +229,7 @@ function getRealtimeMerchantMetrics() {
 }
 
 /* ==========================================================================
-   KHỐI 4: TÍNH TỔNG THU NHẬP THEO TỪNG TÀI KHOẢN DUY NHẤT
+   KHỐI 4: TÍNH TỔNG THU NHẬP THEO TỪNG TÀI KHOẢN DUY NHẤT & SÁT THỦ
    ========================================================================== */
 function isPayModeFreeRun(payModeVal, isFreeFlag) {
     if (isFreeFlag === true) return true;
@@ -306,7 +307,6 @@ function calculateComprehensiveProfitsRealtime() {
     let thaiHuRuns = 0;
     let thaiHuActualRebateGold = 0;
 
-    // QUÉT CHÍNH XÁC DANH SÁCH ACCOUNT DUY NHẤT
     let memberList = Object.values(systemDatabase.members || {});
     memberList.forEach(m => {
         if (!m || !m.name) return;
@@ -315,7 +315,7 @@ function calculateComprehensiveProfitsRealtime() {
         let maxR = parseInt(m.maxRuns) || 2;
         thaiHuRuns += curR;
 
-        // 1. CHỈ CỘNG NGUYÊN LIỆU KHI SỰ KIỆN CÒN HẠN (isEventActive === true)
+        // Chỉ cộng NL khi đang trong sự kiện
         if (isEventActive) {
             let r1_nl = (m.failures && m.failures[1] !== undefined) ? m.failures[1].nl : 24;
             let r2_nl = (m.failures && m.failures[2] !== undefined) ? m.failures[2].nl : 48;
@@ -326,7 +326,6 @@ function calculateComprehensiveProfitsRealtime() {
             if (curR >= 3) thaiHuMaterials += r3_nl;
         }
 
-        // 2. TÍNH CHI PHÍ VÉ: TỐI ĐA (maxRuns - 1) LƯỢT VÉ CHO 1 ACCOUNT
         let selEl2 = document.getElementById(`select-lineup-paymode-${m.id}-2`);
         let selEl3 = document.getElementById(`select-lineup-paymode-${m.id}-3`);
 
@@ -336,17 +335,14 @@ function calculateComprehensiveProfitsRealtime() {
         let isFreeL2 = isPayModeFreeRun(payVal2, m.freeRun2);
         let isFreeL3 = isPayModeFreeRun(payVal3, m.freeRun3);
 
-        // Lần 2 (Tối đa 1 vé cho mọi account)
         if (curR >= 2 && !isFreeL2) {
             thaiHuCosts += ticketPriceTH;
         }
 
-        // Lần 3 (Chỉ account Max 3 mới có thể tốn thêm 1 vé thứ hai)
         if (curR >= 3 && maxR >= 3 && !isFreeL3) {
             thaiHuCosts += ticketPriceTH;
         }
 
-        // 3. HOÀN VÀNG KHI HOÀN THÀNH ĐỦ MAX LƯỢT
         let isRun2Failed = m.failures && m.failures[2] !== undefined;
         let isRun3Failed = m.failures && m.failures[3] !== undefined;
 
@@ -357,11 +353,8 @@ function calculateComprehensiveProfitsRealtime() {
         }
     });
 
-    // Tiền nguyên liệu Thái Hư: Hết hạn sự kiện hoặc bật bỏ tính -> 0v
     let actualThaiHuMatGold = isEventActive ? (thaiHuMaterials * matPrice) : 0;
     let appliedThaiHuMatGold = isExcludeMaterials ? 0 : actualThaiHuMatGold;
-
-    // Tiền hoàn vàng Thái Hư
     let appliedThaiHuRebateGold = isExcludeRefund ? 0 : thaiHuActualRebateGold;
 
     thaiHuGold = appliedThaiHuMatGold + appliedThaiHuRebateGold - thaiHuCosts;
@@ -374,16 +367,25 @@ function calculateComprehensiveProfitsRealtime() {
 
     thaiHuGold += appliedDeoGold;
 
-    // Lấy tổng vàng Thương Nhân Realtime
+    // Lấy Thương Nhân Realtime
     let merchantMetrics = getRealtimeMerchantMetrics();
     let merchantTotalGold = merchantMetrics.totalGold;
     let merchantMaterials = merchantMetrics.totalMaterials;
 
-    let grandTotalMaterials = thaiHuMaterials + merchantMaterials;
-    let totalAllGold = thaiHuGold + merchantTotalGold;
+    // LẤY SỐ LIỆU SÁT THỦ TỪ MASTER HUB POPUP
+    let satThuData = (typeof getSatThuMasterAnalyticsData === 'function') 
+        ? getSatThuMasterAnalyticsData() 
+        : { totalGold: 0, materials: 0, todayGold: 0, todayMaterials: 0 };
+    let satThuTotalGold = satThuData.todayGold || 0;
+    let satThuMaterials = satThuData.todayMaterials || 0;
+
+    // CỘNG DỒN TẤT CẢ 3 PHÂN HỆ: THÁI HƯ + THƯƠNG NHÂN + SÁT THỦ
+    let grandTotalMaterials = thaiHuMaterials + merchantMaterials + satThuMaterials;
+    let totalAllGold = thaiHuGold + merchantTotalGold + satThuTotalGold;
 
     let thaiHuVnd = Math.round((thaiHuGold / 1000) * goldRateVnd);
     let merchantVnd = Math.round((merchantTotalGold / 1000) * goldRateVnd);
+    let satThuVnd = Math.round((satThuTotalGold / 1000) * goldRateVnd);
     let totalAllVnd = Math.round((totalAllGold / 1000) * goldRateVnd);
 
     let teamRunsCount = (thaiHuRuns / 8).toFixed(1).replace('.0', '');
@@ -393,9 +395,10 @@ function calculateComprehensiveProfitsRealtime() {
     let totalMatsEl = document.getElementById('runtime-total-materials');
     if (totalMatsEl) totalMatsEl.innerText = `${grandTotalMaterials.toLocaleString('vi-VN')} NL`;
 
+    // Hiển thị bóc tách nguồn NL: TH + TN + ST
     let matsBreakdownEl = document.getElementById('runtime-materials-breakdown-text');
     if (matsBreakdownEl) {
-        matsBreakdownEl.innerText = `TH: ${thaiHuMaterials.toLocaleString('vi-VN')} + TN: ${merchantMaterials.toLocaleString('vi-VN')} NL`;
+        matsBreakdownEl.innerText = `TH: ${thaiHuMaterials.toLocaleString('vi-VN')} + TN: ${merchantMaterials.toLocaleString('vi-VN')} + ST: ${satThuMaterials.toLocaleString('vi-VN')} NL`;
     }
 
     let totalCostsEl = document.getElementById('runtime-total-costs');
@@ -421,9 +424,11 @@ function calculateComprehensiveProfitsRealtime() {
 
     let thaiHuProfEl = document.getElementById('runtime-thaihu-profit');
     let merchantProfEl = document.getElementById('runtime-merchant-profit');
+    let satThuProfEl = document.getElementById('runtime-satthu-profit');
 
     if (thaiHuProfEl) thaiHuProfEl.innerText = `${thaiHuGold >= 0 ? '+' : ''}${thaiHuGold.toFixed(2)}v (~${thaiHuVnd.toLocaleString('vi-VN')} đ)`;
     if (merchantProfEl) merchantProfEl.innerText = `${merchantTotalGold >= 0 ? '+' : ''}${merchantTotalGold.toFixed(2)}v (~${merchantVnd.toLocaleString('vi-VN')} đ)`;
+    if (satThuProfEl) satThuProfEl.innerText = `${satThuTotalGold >= 0 ? '+' : ''}${satThuTotalGold.toFixed(2)}v (~${satThuVnd.toLocaleString('vi-VN')} đ)`;
 
     let totalGoldEl = document.getElementById('runtime-net-profit-gold');
     let totalVndEl = document.getElementById('runtime-net-profit-vnd');
