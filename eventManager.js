@@ -1,6 +1,9 @@
 /**
- * Mô-đun Quản lý Sự kiện Độc lập
+ * Tên file: eventManager.js
+ * Chức năng: Mô-đun Quản lý Sự kiện Độc lập & Lịch sử Sự Kiện (GMT+7)
+ * Đảm bảo: Hết hạn ngắt nguyên liệu, thêm sự kiện mới tự động đẩy sự kiện cũ xuống danh sách
  */
+
 const EventManager = {
     STORAGE_KEY: 'SYSTEM_EVENTS_REGISTRY',
 
@@ -8,45 +11,74 @@ const EventManager = {
     getData() {
         const raw = localStorage.getItem(this.STORAGE_KEY);
         if (raw) {
-            try { return JSON.parse(raw); } catch (e) { console.error(e); }
+            try {
+                let parsed = JSON.parse(raw);
+                let evList = parsed.events || parsed.list || [];
+                let actId = parsed.activeEventId || parsed.activeId || (evList[0] ? evList[0].id : "sk_thang_10_2026");
+                
+                // Đồng bộ 2 chiều cả events và list để không bao giờ bị rỗng
+                return {
+                    activeEventId: actId,
+                    activeId: actId,
+                    events: evList,
+                    list: evList
+                };
+            } catch (e) {
+                console.error("Lỗi đọc EventManager:", e);
+            }
         }
-        return {
+
+        // Mặc định khởi tạo nếu chưa có dữ liệu trong máy
+        const defaultEvents = [
+            {
+                id: "sk_thang_10_2026",
+                name: "sự kiện tháng 10",
+                startDate: "2026-10-01",
+                endDate: "2026-10-31"
+            },
+            {
+                id: "sk_thang_8_2026",
+                name: "sự kiện tháng 8",
+                startDate: "2026-08-01",
+                endDate: "2026-08-31"
+            }
+        ];
+
+        const initialData = {
             activeEventId: "sk_thang_10_2026",
-            events: [
-                {
-                    id: "sk_thang_10_2026",
-                    name: "sự kiện tháng 10",
-                    startDate: "2026-10-01",
-                    endDate: "2026-10-31"
-                },
-                {
-                    id: "sk_thang_8_2026",
-                    name: "sự kiện tháng 8",
-                    startDate: "2026-08-01",
-                    endDate: "2026-08-31"
-                }
-            ]
+            activeId: "sk_thang_10_2026",
+            events: defaultEvents,
+            list: defaultEvents
         };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(initialData));
+        return initialData;
     },
 
     saveData(data) {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+        // Luôn giữ đồng bộ cả events lẫn list
+        let cleanData = {
+            activeEventId: data.activeEventId || data.activeId,
+            activeId: data.activeEventId || data.activeId,
+            events: data.events || data.list || [],
+            list: data.events || data.list || []
+        };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cleanData));
     },
 
-    // Lấy sự kiện đang được chọn/áp dụng
+    // Lấy sự kiện đang được áp dụng
     getActiveEvent() {
         const data = this.getData();
-        return data.events.find(e => e.id === data.activeEventId) || null;
+        const activeId = data.activeEventId || data.activeId;
+        return data.events.find(e => e.id === activeId) || data.events[0] || null;
     },
 
-    // Kiểm tra sự kiện hiện tại có đang trong thời gian diễn ra (chuẩn GMT+7) hay không
+    // Kiểm tra sự kiện hiện tại có đang chạy hay không (chuẩn ngày GMT+7)
     isEventCurrentlyActiveGMT7() {
         const currentEvent = this.getActiveEvent();
         if (!currentEvent || !currentEvent.startDate || !currentEvent.endDate) {
             return false;
         }
 
-        // Lấy thời điểm hiện tại quy đổi về 00:00:00 ngày hôm nay GMT+7
         const now = new Date();
         const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
         const gmt7Ms = utcMs + (3600000 * 7);
@@ -58,43 +90,74 @@ const EventManager = {
         return todayMs >= startMs && todayMs <= endMs;
     },
 
-    // Lưu hoặc thêm mới sự kiện từ cài đặt
+    // Lưu hoặc thêm mới sự kiện từ màn hình cài đặt
     saveOrUpdateEvent(name, startDate, endDate) {
         const data = this.getData();
-        const cleanName = name.trim();
-        
-        // Kiểm tra xem sự kiện đã tồn tại theo tên chưa
+        const cleanName = (name || '').trim();
+        if (!cleanName) return;
+
         let event = data.events.find(e => e.name.toLowerCase() === cleanName.toLowerCase());
+        let targetId = "";
+
         if (event) {
             event.startDate = startDate;
             event.endDate = endDate;
-            data.activeEventId = event.id;
+            targetId = event.id;
         } else {
-            const newId = 'sk_' + Date.now();
+            targetId = 'sk_' + Date.now();
             const newEvent = {
-                id: newId,
+                id: targetId,
                 name: cleanName,
                 startDate: startDate,
                 endDate: endDate
             };
-            // Đưa sự kiện mới nhất lên đầu danh sách
+            // Đưa sự kiện mới lên đầu bảng, tự động đẩy sự kiện cũ xuống danh sách bên dưới
             data.events.unshift(newEvent);
-            data.activeEventId = newId;
         }
 
+        data.activeEventId = targetId;
+        data.activeId = targetId;
         this.saveData(data);
-        return data.activeEventId;
+
+        // ĐỒNG BỘ TRIỆT ĐỂ: Ghi đè vào các biến cũ để hệ thống không bị quay lại tháng 8
+        localStorage.setItem('EVENT_NAME', cleanName);
+        if (startDate) localStorage.setItem('EVENT_START_DATE', startDate);
+        if (endDate) localStorage.setItem('EVENT_END_DATE', endDate);
+
+        if (typeof systemDatabase !== 'undefined') {
+            systemDatabase.eventName = cleanName;
+            systemDatabase.eventStartDate = startDate;
+            systemDatabase.eventEndDate = endDate;
+            if (!systemDatabase.eventConfig) systemDatabase.eventConfig = {};
+            systemDatabase.eventConfig.eventName = cleanName;
+            systemDatabase.eventConfig.startDate = startDate;
+            systemDatabase.eventConfig.endDate = endDate;
+        }
+
+        return targetId;
     },
 
-    // Đổi sự kiện đang chọn áp dụng
+    // Đổi sự kiện đang chọn từ danh sách lịch sử
     setActiveEvent(eventId) {
         const data = this.getData();
-        if (data.events.some(e => e.id === eventId)) {
+        const ev = data.events.find(e => e.id === eventId);
+        if (ev) {
             data.activeEventId = eventId;
+            data.activeId = eventId;
             this.saveData(data);
+
+            // Đồng bộ sang bộ nhớ cũ
+            localStorage.setItem('EVENT_NAME', ev.name);
+            localStorage.setItem('EVENT_START_DATE', ev.startDate);
+            localStorage.setItem('EVENT_END_DATE', ev.endDate);
+
+            if (typeof systemDatabase !== 'undefined') {
+                systemDatabase.eventName = ev.name;
+                systemDatabase.eventStartDate = ev.startDate;
+                systemDatabase.eventEndDate = ev.endDate;
+            }
         }
     }
 };
 
-// Đảm bảo truy cập toàn cục
 window.EventManager = EventManager;
