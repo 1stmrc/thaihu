@@ -1,5 +1,5 @@
 // Tên file: giao-dien-cai-dat.js
-// Chức năng: Điều phối Cài Đặt Hệ Thống - Hiển thị tên đầy đủ dạng A.01 dgc bên tab Mốc Lượt.
+// Chức năng: Điều phối Cài Đặt Hệ Thống - Hiển thị mốc lượt, môn phái, màu sắc và đồng bộ dữ liệu Sự kiện với EventManager.
 // Con của file: index.html
 
 let currentActiveSettingsTabId = 'modal-tab-runs';
@@ -15,7 +15,6 @@ function openSettingsModal() {
     }
     
     if (typeof injectFactionSettingsTabUI === 'function') injectFactionSettingsTabUI();
-    if (typeof injectEventNameFieldUI === 'function') injectEventNameFieldUI();
 
     setTimeout(() => {
         let picker = document.getElementById('modal-team-filter-picker');
@@ -24,39 +23,95 @@ function openSettingsModal() {
             picker.innerHTML = dataTeams.map(x => `<option value="${x.id}">${x.name.toUpperCase()}</option>`).join(''); 
         }
 
-        let nameEl = document.getElementById('input-event-name-custom');
-        let dateInputs = document.querySelectorAll('#settings-modal input[type="date"], input[type="date"]');
-
-        if (nameEl) nameEl.value = systemDatabase.eventName || localStorage.getItem('EVENT_NAME') || "";
-        
-        if (dateInputs.length >= 2) {
-            let savedStart = systemDatabase.eventStartDate || localStorage.getItem('EVENT_START_DATE') || "";
-            let savedEnd = systemDatabase.eventEndDate || localStorage.getItem('EVENT_END_DATE') || "";
-            if (savedStart) dateInputs[0].value = savedStart;
-            if (savedEnd) dateInputs[1].value = savedEnd;
-        }
+        // Đồng bộ dữ liệu Sự Kiện qua EventManager
+        syncEventDataFromManager();
 
         switchModalTab('modal-tab-runs'); 
     }, 60);
 }
 
-function injectEventNameFieldUI() {
-    let tabEventView = document.getElementById('view-modal-tab-event') || document.querySelector('.modal-tab-panel:nth-child(3)');
-    if (!tabEventView) {
-        let anyDateInput = document.querySelector('#settings-modal input[type="date"]');
-        if (anyDateInput) tabEventView = anyDateInput.closest('.modal-tab-panel') || anyDateInput.parentElement.parentElement.parentElement;
+function syncEventDataFromManager() {
+    let nameEl = document.getElementById('input-event-name-custom');
+    let startEl = document.getElementById('input-event-start-date');
+    let endEl = document.getElementById('input-event-end-date');
+
+    if (typeof EventManager !== 'undefined') {
+        let active = EventManager.getActiveEvent();
+        if (active) {
+            if (nameEl) nameEl.value = active.name || "";
+            if (startEl) startEl.value = active.startDate || "";
+            if (endEl) endEl.value = active.endDate || "";
+        }
+        renderEventsHistoryUI();
+    } else {
+        if (nameEl) nameEl.value = (typeof systemDatabase !== 'undefined' && systemDatabase.eventName) || localStorage.getItem('EVENT_NAME') || "";
+        if (startEl) startEl.value = (typeof systemDatabase !== 'undefined' && systemDatabase.eventStartDate) || localStorage.getItem('EVENT_START_DATE') || "";
+        if (endEl) endEl.value = (typeof systemDatabase !== 'undefined' && systemDatabase.eventEndDate) || localStorage.getItem('EVENT_END_DATE') || "";
+    }
+}
+
+function renderEventsHistoryUI() {
+    let container = document.getElementById('events-history-list');
+    if (!container || typeof EventManager === 'undefined') return;
+
+    let data = EventManager.getData();
+    let activeId = data.activeId;
+
+    let now = new Date();
+    let utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    let gmt7Time = new Date(utc + (3600000 * 7));
+    let curYear = gmt7Time.getFullYear();
+    let curMonth = String(gmt7Time.getMonth() + 1).padStart(2, '0');
+    let curDay = String(gmt7Time.getDate()).padStart(2, '0');
+    let todayStr = curYear + '-' + curMonth + '-' + curDay;
+
+    if (!data.list || data.list.length === 0) {
+        container.innerHTML = `<div class="text-gray-500 text-center py-4 italic">Chưa có lịch sử sự kiện nào.</div>`;
+        return;
     }
 
-    if (tabEventView && !document.getElementById('input-event-name-custom')) {
-        let nameWrapper = document.createElement('div');
-        nameWrapper.className = "flex flex-col gap-1 mb-3";
-        nameWrapper.innerHTML = `
-            <label class="text-xs font-bold text-amber-400 flex items-center gap-1">
-                <i class="fa-solid fa-pen-to-square"></i> Tên Sự Kiện:
-            </label>
-            <input id="input-event-name-custom" type="text" placeholder="Nhập tên sự kiện..." class="w-full bg-gray-800 border border-amber-500/50 rounded-lg px-3 py-2 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-400 shadow-inner">
+    container.innerHTML = data.list.map(ev => {
+        let isCurrent = ev.id === activeId;
+        let isExpired = todayStr > ev.endDate;
+        let isIncoming = todayStr < ev.startDate;
+
+        let statusBadge = '';
+        if (isExpired) {
+            statusBadge = '<span class="text-[9px] text-rose-400 bg-rose-500/10 border border-rose-500/30 px-1.5 py-0.5 rounded font-bold">Hết hạn</span>';
+        } else if (isIncoming) {
+            statusBadge = '<span class="text-[9px] text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-1.5 py-0.5 rounded font-bold">Chưa tới</span>';
+        } else {
+            statusBadge = '<span class="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold animate-pulse">Đang chạy</span>';
+        }
+
+        return `
+            <div class="p-2 rounded-lg border ${isCurrent ? 'bg-amber-500/10 border-amber-500/50' : 'bg-gray-900 border-gray-800'} flex items-center justify-between gap-2 transition">
+                <div class="flex flex-col min-w-0">
+                    <div class="font-bold text-gray-200 flex items-center gap-1.5 truncate">
+                        <span class="truncate">${ev.name}</span>
+                        ${isCurrent ? '<span class="text-[9px] bg-amber-500 text-black px-1.5 py-0.2 rounded font-black shrink-0">ĐANG CHỌN</span>' : ''}
+                        ${statusBadge}
+                    </div>
+                    <div class="text-[10px] text-gray-400 font-mono mt-0.5">
+                        ${ev.startDate} ➔ ${ev.endDate}
+                    </div>
+                </div>
+                ${!isCurrent ? `
+                    <button onclick="handleSelectHistoricEvent('${ev.id}')" class="shrink-0 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-amber-300 px-2 py-1 rounded border border-gray-700 text-[11px] font-bold transition cursor-pointer">
+                        Chọn dùng
+                    </button>
+                ` : ''}
+            </div>
         `;
-        tabEventView.insertBefore(nameWrapper, tabEventView.firstChild);
+    }).join('');
+}
+
+function handleSelectHistoricEvent(eventId) {
+    if (typeof EventManager !== 'undefined') {
+        EventManager.setActiveEvent(eventId);
+        syncEventDataFromManager();
+        if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
+        if (typeof updateDeoStatisticsDisplays === 'function') updateDeoStatisticsDisplays();
     }
 }
 
@@ -86,7 +141,7 @@ function switchModalTab(tabId) {
         if (typeof renderModalFactionConfigRows === 'function') renderModalFactionConfigRows(); 
     }
     if (tabId === 'modal-tab-colors') { renderModalTeamColorsConfig(); }
-    if (tabId === 'modal-tab-event') { injectEventNameFieldUI(); }
+    if (tabId === 'modal-tab-event') { syncEventDataFromManager(); }
 }
 
 function commitModalMaxRunBoundSettings() { 
@@ -112,42 +167,57 @@ function commitModalMaxRunBoundSettings() {
     }
     else if (currentActiveSettingsTabId === 'modal-tab-colors') {
         if (!systemDatabase.customColors) systemDatabase.customColors = {};
-        document.querySelectorAll('.modal-team-color-picker-select').forEach(select => {
+        document.querySelectorAll('.modal-team-color-picker-select').forEach(select => { 
             let teamKeyName = select.getAttribute('data-team-key');
             if (typeof TEAM_COLOR_MAP !== 'undefined') {
                 TEAM_COLOR_MAP[teamKeyName] = select.value;
             }
             systemDatabase.customColors[teamKeyName] = select.value;
-        });
+        }); 
         noticeText = `Đã lưu cấu hình Màu Đội Hình.`;
     }
     else if (currentActiveSettingsTabId === 'modal-tab-event') {
         let nameEl = document.getElementById('input-event-name-custom');
-        let dateInputs = document.querySelectorAll('#settings-modal input[type="date"], input[type="date"]');
+        let startEl = document.getElementById('input-event-start-date');
+        let endEl = document.getElementById('input-event-end-date');
 
         let eventNameVal = nameEl ? nameEl.value.trim() : "";
-        let eventStartVal = dateInputs.length > 0 ? dateInputs[0].value : "";
-        let eventEndVal = dateInputs.length > 1 ? dateInputs[1].value : "";
+        let eventStartVal = startEl ? startEl.value : "";
+        let eventEndVal = endEl ? endEl.value : "";
 
-        if (eventNameVal) localStorage.setItem('EVENT_NAME', eventNameVal);
+        if (!eventNameVal) {
+            alert("Vui lòng nhập tên sự kiện!");
+            return;
+        }
+
+        // Lưu đồng bộ qua EventManager
+        if (typeof EventManager !== 'undefined') {
+            EventManager.saveOrUpdateEvent(eventNameVal, eventStartVal, eventEndVal);
+        }
+
+        // Đồng bộ ngược lại bộ nhớ hệ thống
+        localStorage.setItem('EVENT_NAME', eventNameVal);
         if (eventStartVal) localStorage.setItem('EVENT_START_DATE', eventStartVal);
         if (eventEndVal) localStorage.setItem('EVENT_END_DATE', eventEndVal);
 
-        systemDatabase.eventName = eventNameVal;
-        systemDatabase.eventStartDate = eventStartVal;
-        systemDatabase.eventEndDate = eventEndVal;
+        if (typeof systemDatabase !== 'undefined') {
+            systemDatabase.eventName = eventNameVal;
+            systemDatabase.eventStartDate = eventStartVal;
+            systemDatabase.eventEndDate = eventEndVal;
+            if (!systemDatabase.eventConfig) systemDatabase.eventConfig = {};
+            systemDatabase.eventConfig.eventName = eventNameVal;
+            systemDatabase.eventConfig.startDate = eventStartVal;
+            systemDatabase.eventConfig.endDate = eventEndVal;
+        }
 
-        if (!systemDatabase.eventConfig) systemDatabase.eventConfig = {};
-        systemDatabase.eventConfig.eventName = eventNameVal;
-        systemDatabase.eventConfig.startDate = eventStartVal;
-        systemDatabase.eventConfig.endDate = eventEndVal;
-
+        renderEventsHistoryUI();
         let skNameShow = eventNameVal ? `[${eventNameVal}]` : '';
         noticeText = `Đã cập nhật sự kiện ${skNameShow}: Từ ${eventStartVal || '---'} đến ${eventEndVal || '---'}`;
     }
 
     closeSettingsModal(); 
 
+    if (typeof calculateRealtimeProfits === 'function') { calculateRealtimeProfits(); }
     if (typeof updateDeoStatisticsDisplays === 'function') { updateDeoStatisticsDisplays(); }
     if (typeof evaluateLineupsDynamicCapacity === 'function') { evaluateLineupsDynamicCapacity(); }
     if (typeof refreshUserInterfaceLayout === 'function') { refreshUserInterfaceLayout(); }
@@ -178,7 +248,6 @@ function renderModalMembersConfigRows() {
         let m = systemDatabase.members[mId]; 
         if(!m) return; 
         
-        // Gọi hàm ghép đầy đủ tên A.01 dgc
         let fullTitle = (typeof getMemberFullDisplayTitle === 'function') ? getMemberFullDisplayTitle(m, team) : m.name;
 
         let block = document.createElement('div'); 
@@ -269,3 +338,5 @@ function filterAvailableModalColors() {
         });
     });
 }
+
+window.handleSelectHistoricEvent = handleSelectHistoricEvent;
