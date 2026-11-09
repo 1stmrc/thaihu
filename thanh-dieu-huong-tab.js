@@ -1,5 +1,5 @@
 // Tên file: thanh-dieu-huong-tab.js
-// Chức năng: Điều phối thanh Tabs chính (6 Tabs: Thái Hư, Thương Nhân, Sát Thủ, So Sánh Tối Ưu, Quản Lý Đoài, Lịch Sử), tự động dọn sạch màu active cũ, chỉ làm sáng DUY NHẤT 1 tab đang mở và ẩn/hiện chính xác viewport tương ứng.
+// Chức năng: Điều phối thanh 6 Tabs chính (Thái Hư, Thương Nhân, Sát Thủ, So Sánh Tối Ưu, Quản Lý Đoài, Lịch Sử), đồng bộ dọn sạch màu active và kích hoạt đúng giao diện.
 // Con của file: index.html
 
 const BAT_QUAI_SVG_ICON = `
@@ -40,9 +40,6 @@ function setActiveMainTabUI(activeKey) {
 
     Object.keys(TAB_BUTTON_IDS).forEach(key => {
         let btn = document.getElementById(TAB_BUTTON_IDS[key]);
-        if (!btn && key === 'satthu') {
-            btn = document.getElementById('main-nav-tab-sat-thu');
-        }
         if (btn) {
             btn.className = (key === activeKey) ? TAB_ACTIVE_STYLES[key] : INACTIVE_CLASS;
         }
@@ -69,7 +66,7 @@ function handleMainTabSwitch(target) {
 
     // 3. Kích hoạt logic từng tab cụ thể
     if (target === 'thaihu') {
-        if (typeof switchMainSystemTab === 'function') switchMainSystemTab('thai_hu_main');[cite: 10]
+        if (typeof switchMainSystemTab === 'function') switchMainSystemTab('thai_hu_main');
     } else if (target === 'merchant') {
         if (typeof switchToMerchantManagementTab === 'function') switchToMerchantManagementTab();
         else if (typeof switchMainSystemTab === 'function') switchMainSystemTab('merchant_tab');
@@ -82,7 +79,7 @@ function handleMainTabSwitch(target) {
             renderOptimizationWorkspaceView();
         }
     } else if (target === 'deo') {
-        if (typeof switchToDeoManagementTab === 'function') switchToDeoManagementTab();[cite: 10]
+        if (typeof switchToDeoManagementTab === 'function') switchToDeoManagementTab();
     } else if (target === 'logs') {
         if (typeof switchToActivityLogTab === 'function') switchToActivityLogTab();
     }
@@ -130,6 +127,14 @@ function injectMainTabsComponent() {
     `;
 }
 
+// Gắn toàn cục đảm bảo index.html gọi được
 window.setActiveMainTabUI = setActiveMainTabUI;
 window.handleMainTabSwitch = handleMainTabSwitch;
 window.injectMainTabsComponent = injectMainTabsComponent;
+
+// Tự động vẽ ngay khi file nạp xong nếu container đã có sẵn
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", injectMainTabsComponent);
+} else {
+    injectMainTabsComponent();
+}
