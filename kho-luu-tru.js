@@ -247,39 +247,43 @@ function resetToHardcodedDefault() {
     }
 }
 
+// --- RESET NGÀY: RESET ĐỒNG THỜI CẢ THÁI HƯ & TIẾN ĐỘ SÁT THỦ ---
 function resetDailyRunsOnly() {
-    if (confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0? Các ô tích chọn free, báo thất bại và tiến độ Sát Thủ sẽ được làm sạch hoàn toàn.")) {
-        // 1. Chốt sổ snapshot ngày cũ trước khi xóa
+    if (confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0? Lịch sử các ngày trước đã được lưu an toàn.")) {
+        // 1. Chốt sổ snapshot trước khi xóa trắng dữ liệu
         if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
 
-        // 2. Quét qua toàn bộ tài khoản để reset
-        Object.keys(systemDatabase.members).forEach(id => {
-            let m = systemDatabase.members[id];
-            if (!m) return;
+        // 2. Quét qua toàn bộ danh sách thành viên để xóa lượt
+        if (typeof systemDatabase !== 'undefined' && systemDatabase.members) {
+            Object.keys(systemDatabase.members).forEach(id => {
+                let m = systemDatabase.members[id];
+                if (!m) return;
 
-            // Reset Thái Hư
-            m.currentRuns = 0;
-            m.freeRun2 = false;
-            m.freeRun3 = false;
-            m.failures = {};
+                // Reset tiến độ Thái Hư
+                m.currentRuns = 0;
+                m.freeRun2 = false;
+                m.freeRun3 = false;
+                m.failures = {};
 
-            // >>> THÊM: RESET TIẾN ĐỘ VÀ GIỜ SÁT THỦ <<<
-            m.satThuRuns = 0;
-            delete m.satThuCheckTime;
-            delete m.satThuTimestamp;
-            delete m.satThuCompletedTimestamp;
-        });
+                // Reset triệt để tiến độ & mốc giờ Sát Thủ
+                m.satThuRuns = 0;
+                delete m.satThuCheckTime;
+                delete m.satThuTimestamp;
+                delete m.satThuCompletedTimestamp;
+            });
+        }
 
-        // 3. Cập nhật lại giao diện Thái Hư
-        if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity(); 
-        if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout(); 
+        // 3. Cập nhật lại giao diện Thái Hư & Đội Hình Xếp
+        if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity();
+        if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout();
         if (typeof renderThaiHuMainView === 'function') renderThaiHuMainView();
+        if (typeof renderActiveWorkspacePanel === 'function') renderActiveWorkspacePanel();
 
-        // 4. Cập nhật lại giao diện và Widget Sát Thủ (nếu đang mở tab Sát Thủ)
+        // 4. CẬP NHẬT TRỰC TIẾP BẢNG & POPUP SÁT THỦ (NẾU ĐANG MỞ)
         if (typeof renderSatThuTableRows === 'function') renderSatThuTableRows();
         if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
 
-        // 5. Lưu trạng thái mới vào bộ nhớ
+        // 5. Lưu trạng thái đã reset vào bộ nhớ & tính toán lại lợi nhuận
         if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
         if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
         if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
