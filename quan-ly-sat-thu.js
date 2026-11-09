@@ -1,32 +1,22 @@
 // Tên file: quan-ly-sat-thu.js
-// Chức năng: Quản lý Tab Sát Thủ - Kế thừa 100% giao diện bảng Thương Nhân (8 cột chuẩn), tiến độ 3/3 (+1 NP, +1.2v, SK: +18 NL).
+// Chức năng: Quản lý Tab Sát Thủ - Nền hơi đỏ dark-wine, bỏ cột kéo, giờ dạng xHy sáng nét, copy chuẩn xác 100%, có thanh tiến độ trực quan.
 // Con của file: index.html
 
 let activeSatThuTeamId = null;
 
 function switchToSatThuTab() {
-    // 1. Reset class của toàn bộ các nút tab chính
-    document.querySelectorAll('[id^="btn-main-tab-"]').forEach(btn => {
-        btn.className = "px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
-    });
-
-    // 2. Kích hoạt màu đỏ cho tab Sát Thủ
-    let btnSatThu = document.getElementById('main-nav-tab-sat-thu');
-    if (btnSatThu) {
-        btnSatThu.className = "px-3 py-1.5 rounded-lg text-xs font-black bg-rose-600 text-white shadow border border-rose-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
+    if (typeof setActiveMainTabUI === 'function') {
+        setActiveMainTabUI('satthu');
     }
 
-    // 3. Ẩn thanh điều hướng phụ mặc định của Thái Hư
     let subNavZone = document.getElementById('sub-navbar-container-zone');
     if (subNavZone) subNavZone.classList.add('hidden');
 
-    // 4. Ẩn toàn bộ view con hiện tại trong Viewport
     let viewport = document.getElementById('active-panel-view-viewport');
     if (viewport) {
         Array.from(viewport.children).forEach(child => child.classList.add('hidden'));
     }
 
-    // 5. Khởi tạo và hiển thị khung Sát Thủ
     initSatThuTableWorkspace();
     let satThuPanel = document.getElementById('tab-content-quan-ly-sat-thu');
     if (satThuPanel) {
@@ -35,7 +25,7 @@ function switchToSatThuTab() {
     }
 }
 
-// KHỞI TẠO BẢNG CHUẨN FORM THƯƠNG NHÂN (TABLE 8 CỘT)
+// KHỞI TẠO BẢNG SÁT THỦ: NỀN HƠI ĐỎ, CÓ THANH TIẾN ĐỘ, BỎ CỘT KÉO
 function initSatThuTableWorkspace() {
     let viewport = document.getElementById('active-panel-view-viewport');
     if (!viewport) return;
@@ -48,22 +38,34 @@ function initSatThuTableWorkspace() {
 
         panel.innerHTML = `
             <!-- HÀNG SUB-TABS: TEAM A -> TEAM L -->
-            <div class="flex items-center justify-between gap-2 pb-1.5 border-b border-gray-700/70 shrink-0">
+            <div class="flex items-center justify-between gap-2 pb-1.5 border-b border-rose-900/40 shrink-0">
                 <div class="flex-1 overflow-x-auto no-scrollbar">
                     <div class="flex items-center gap-1.5 min-w-max" id="sat-thu-sub-tabs-holder"></div>
                 </div>
             </div>
 
-            <!-- BẢNG DỮ LIỆU ĐÚNG CHUẨN FORM THƯƠNG NHÂN -->
-            <div class="flex-1 overflow-hidden bg-gray-955 rounded-xl border border-gray-800 p-2 flex flex-col">
+            <!-- THANH TIẾN ĐỘ TỔNG THỂ CỦA TEAM (MÀU ĐỎ HỒNG NEON) -->
+            <div class="bg-[#1b0d12] border border-rose-900/50 rounded-xl px-3 py-2 shrink-0 flex items-center justify-between gap-3 shadow-inner">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-black text-rose-400 flex items-center gap-1.5 uppercase tracking-wide">
+                        <i class="fa-solid fa-fire text-rose-500"></i> Tiến Độ Sát Thủ:
+                    </span>
+                    <span id="sat-thu-progress-text" class="text-xs font-mono font-bold text-white">0 / 24 Lượt (0%)</span>
+                </div>
+                <div class="flex-1 max-w-xs bg-gray-900/90 h-2.5 rounded-full overflow-hidden border border-rose-950 p-0.5">
+                    <div id="sat-thu-progress-bar" class="h-full bg-gradient-to-r from-rose-600 via-pink-600 to-rose-400 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.6)]" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- BẢNG DỮ LIỆU NỀN HƠI ĐỎ (#16080c) -->
+            <div class="flex-1 overflow-hidden bg-[#16080c] rounded-xl border border-rose-950/70 p-2 flex flex-col shadow-2xl">
                 <div class="w-full overflow-y-auto custom-scrollbar flex-1">
                     <table class="w-full text-left text-xs border-collapse table-fixed">
                         <thead>
-                            <tr class="text-gray-400 border-b border-gray-800 pb-2 uppercase text-[11px] font-bold">
-                                <th class="p-2.5 w-10 text-center">KÉO</th>
-                                <th class="p-2.5 w-10 text-center">STT</th>
-                                <th class="p-2.5 w-[260px]">TÊN TÀI KHOẢN</th>
-                                <th class="p-2.5 w-16 text-center">CHECK</th>
+                            <tr class="text-rose-300/80 border-b border-rose-900/40 pb-2 uppercase text-[11px] font-bold">
+                                <th class="p-2.5 w-12 text-center">STT</th>
+                                <th class="p-2.5 w-[280px]">TÊN TÀI KHOẢN</th>
+                                <th class="p-2.5 w-20 text-center">CHECK</th>
                                 <th class="p-2.5 text-center w-[230px]">TIẾN ĐỘ SÁT THỦ</th>
                                 <th class="p-2.5 w-14 text-center">KHÓA</th>
                                 <th class="p-2.5 w-14 text-center">COPY</th>
@@ -89,13 +91,12 @@ function renderSatThuMainUI() {
         activeSatThuTeamId = dataTeams[0].id;
     }
 
-    // Vẽ các nút Team A -> Team L
     let holder = document.getElementById('sat-thu-sub-tabs-holder');
     if (holder) {
         holder.innerHTML = dataTeams.map(t => {
             let isActive = t.id === activeSatThuTeamId;
             return `
-                <button onclick="selectSatThuSubTeam('${t.id}')" class="px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${isActive ? 'bg-amber-600 text-white shadow-md' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'}">
+                <button onclick="selectSatThuSubTeam('${t.id}')" class="px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${isActive ? 'bg-rose-600 text-white shadow-md border border-rose-400/50' : 'bg-[#220d14] text-rose-300/70 border border-rose-950 hover:text-white hover:bg-rose-900/50'}">
                     <i class="fa-solid fa-users text-[10px]"></i> ${t.name.toUpperCase()}
                 </button>
             `;
@@ -110,7 +111,7 @@ function selectSatThuSubTeam(tId) {
     renderSatThuMainUI();
 }
 
-// VẼ CÁC HÀNG THEO ĐÚNG NGUYÊN BẢN ẢNH 2
+// VẼ CÁC HÀNG: GIỜ DẠNG xHy SÁNG NÉT, NÚT COPY CHUẨN, BỎ CỘT KÉO
 function renderSatThuTableRows() {
     let tbody = document.getElementById('sat-thu-table-body-rows');
     if (!tbody || typeof systemDatabase === 'undefined') return;
@@ -119,7 +120,11 @@ function renderSatThuTableRows() {
     if (!team) return;
 
     let allDataTeams = systemDatabase.teams.filter(t => t.type === 'data');
-    let currentHour = new Date().getHours();
+    
+    // Tính toán tiến độ tổng cho thanh Progress bar
+    let totalTeamRuns = 0;
+    let maxPossibleRuns = team.memberIds.length * 3;
+
     let rowsHtml = "";
 
     team.memberIds.forEach((mId, index) => {
@@ -128,27 +133,39 @@ function renderSatThuTableRows() {
 
         let runs = parseInt(m.satThuRuns) || 0;
         let isLocked = m.satThuLocked === true || m.satThuLocked === "true";
+        if (!isLocked) totalTeamRuns += runs;
+
         let fullTitle = (typeof getMemberFullDisplayTitle === 'function') ? getMemberFullDisplayTitle(m, team) : (m.name || `Tài khoản ${index + 1}`);
+
+        // ĐỊNH DẠNG GIỜ CHUẨN xHy (Ví dụ: 8H30)
+        let timeDisplay = m.satThuCheckTime;
+        if (!timeDisplay) {
+            let now = new Date();
+            let hh = now.getHours();
+            let mm = String(now.getMinutes()).padStart(2, '0');
+            timeDisplay = `${hh}H${mm}`;
+            m.satThuCheckTime = timeDisplay;
+        }
 
         let teamOptions = allDataTeams.map(t => `
             <option value="${t.id}" ${t.id === team.id ? 'selected' : ''} class="bg-gray-900 text-white">- ${t.name.toUpperCase()} -</option>
         `).join('');
 
         rowsHtml += `
-            <tr class="border-b border-gray-800/60 hover:bg-gray-800/30 transition text-xs select-none ${isLocked ? 'opacity-40 grayscale' : ''}">
-                <td class="p-2.5 text-center text-gray-600"><i class="fa-solid fa-bars cursor-grab"></i></td>
-                <td class="p-2.5 text-center font-mono text-gray-400">${index + 1}</td>
-                <td class="p-2.5 font-bold text-gray-200 truncate max-w-[260px]">${fullTitle}</td>
+            <tr class="border-b border-rose-950/40 hover:bg-rose-950/20 transition text-xs select-none ${isLocked ? 'opacity-35 grayscale' : ''}">
+                <td class="p-2.5 text-center font-mono text-rose-400/80 font-bold">${index + 1}</td>
+                <td class="p-2.5 font-bold text-gray-100 truncate max-w-[280px]">${fullTitle}</td>
                 
+                <!-- GIỜ CHECK SÁNG RÕ RÀNG DẠNG xHy (VD: 8H30) -->
                 <td class="p-2.5 text-center">
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-gray-800/80 text-gray-400 border border-gray-700/80">${currentHour}h</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-black bg-rose-950/90 text-rose-300 border border-rose-600/80 shadow-[0_0_8px_rgba(244,63,94,0.3)]">${timeDisplay}</span>
                 </td>
 
                 <td class="p-2.5 text-center">
-                    <div class="flex items-center justify-center gap-1.5 bg-gray-955 p-1 rounded-lg border border-gray-800 w-[210px] mx-auto">
-                        <button onclick="changeSatThuRunProgress('${m.id}', -1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-gray-800 hover:bg-gray-700 text-rose-400 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20">-</button>
-                        <span class="flex-1 text-center font-mono font-bold text-gray-200 text-xs">${runs} / 3</span>
-                        <button onclick="changeSatThuRunProgress('${m.id}', 1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-gray-800 hover:bg-gray-700 text-emerald-400 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20">+</button>
+                    <div class="flex items-center justify-center gap-1.5 bg-[#100508] p-1 rounded-lg border border-rose-900/60 w-[210px] mx-auto shadow-inner">
+                        <button onclick="changeSatThuRunProgress('${m.id}', -1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-rose-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition">-</button>
+                        <span class="flex-1 text-center font-mono font-bold ${runs >= 3 ? 'text-emerald-400' : 'text-rose-300'} text-xs">${runs} / 3</span>
+                        <button onclick="changeSatThuRunProgress('${m.id}', 1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-emerald-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition">+</button>
                     </div>
                 </td>
 
@@ -158,14 +175,15 @@ function renderSatThuTableRows() {
                     </button>
                 </td>
 
+                <!-- NÚT COPY CHUẨN XÁC VỚI FALLBACK -->
                 <td class="p-2.5 text-center">
-                    <button onclick="copySatThuName('${m.name || ''}', event)" class="w-6 h-6 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition flex items-center justify-center mx-auto cursor-pointer" title="Copy tên">
+                    <button onclick="copySatThuName('${m.name || ''}', this)" class="w-6 h-6 rounded bg-rose-950/80 hover:bg-rose-700 text-rose-300 hover:text-white border border-rose-800 transition flex items-center justify-center mx-auto cursor-pointer" title="Copy tên nhân vật">
                         <i class="fa-regular fa-copy text-[11px]"></i>
                     </button>
                 </td>
 
                 <td class="p-2.5 text-center">
-                    <select onchange="moveSatThuMemberToOtherTeam('${m.id}', this.value)" class="bg-gray-800 border border-gray-700 text-gray-300 rounded px-2 py-1 text-[11px] font-mono outline-none cursor-pointer">
+                    <select onchange="moveSatThuMemberToOtherTeam('${m.id}', this.value)" class="bg-[#240e15] border border-rose-900/80 text-rose-200 rounded px-1.5 py-1 text-[11px] font-mono outline-none cursor-pointer">
                         ${teamOptions}
                     </select>
                 </td>
@@ -174,9 +192,16 @@ function renderSatThuTableRows() {
     });
 
     tbody.innerHTML = rowsHtml;
+
+    // Cập nhật giá trị hiển thị trên thanh tiến độ
+    let progPercent = maxPossibleRuns > 0 ? Math.round((totalTeamRuns / maxPossibleRuns) * 100) : 0;
+    let progTextEl = document.getElementById('sat-thu-progress-text');
+    let progBarEl = document.getElementById('sat-thu-progress-bar');
+    if (progTextEl) progTextEl.innerText = `${totalTeamRuns} / ${maxPossibleRuns} Lượt (${progPercent}%)`;
+    if (progBarEl) progBarEl.style.width = `${progPercent}%`;
 }
 
-// ĐIỀU CHỈNH TIẾN ĐỘ & BÙ TRỪ NGÂN PHIẾU (+1 LƯỢT = +1 NP)
+// CẬP NHẬT TIẾN ĐỘ, TỰ ĐỘNG CẬP NHẬT GIỜ CHECK THỰC TẾ
 function changeSatThuRunProgress(mId, delta) {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.members) return;
     let m = systemDatabase.members[mId];
@@ -190,6 +215,10 @@ function changeSatThuRunProgress(mId, delta) {
         m.satThuRuns = next;
         m.nganPhieu = Math.max(0, (parseInt(m.nganPhieu) || 0) + diff);
 
+        // Cập nhật mốc giờ check khi có thay đổi lượt
+        let now = new Date();
+        m.satThuCheckTime = `${now.getHours()}H${String(now.getMinutes()).padStart(2, '0')}`;
+
         renderSatThuTableRows();
 
         if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
@@ -198,7 +227,6 @@ function changeSatThuRunProgress(mId, delta) {
     }
 }
 
-// Ổ KHÓA BỎ QUA
 function toggleSatThuLockMember(mId) {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.members) return;
     let m = systemDatabase.members[mId];
@@ -213,7 +241,6 @@ function toggleSatThuLockMember(mId) {
     if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
 }
 
-// CHUYỂN NHÓM
 function moveSatThuMemberToOtherTeam(mId, targetTeamId) {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.teams) return;
     let fromTeam = systemDatabase.teams.find(t => t.id === activeSatThuTeamId);
@@ -229,16 +256,50 @@ function moveSatThuMemberToOtherTeam(mId, targetTeamId) {
     }
 }
 
-// HÀM COPY ĐỒNG BỘ CHỐNG LỖI FOCUS
-function copySatThuName(name, event) {
-    if (event) event.stopPropagation();
-    if (!name) return;
+// HÀM COPY HOẠT ĐỘNG CHẮC CHẮN TRÊN MỌI TRÌNH DUYỆT (KÈM FEEDBACK ICON TÍCH XANH)
+function copySatThuName(text, btnElement) {
+    if (!text) return;
+
+    function showSuccess() {
+        if (btnElement) {
+            let icon = btnElement.querySelector('i');
+            if (icon) {
+                icon.className = "fa-solid fa-check text-emerald-400 text-[11px]";
+                setTimeout(() => {
+                    icon.className = "fa-regular fa-copy text-[11px]";
+                }, 1000);
+            }
+        }
+    }
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(name);
+        navigator.clipboard.writeText(text).then(showSuccess).catch(() => {
+            fallbackCopy(text);
+            showSuccess();
+        });
+    } else {
+        fallbackCopy(text);
+        showSuccess();
     }
 }
 
-// HÀM XUẤT SỐ LIỆU ĐỂ CÁC POPUP THỐNG KÊ GỌI
+function fallbackCopy(text) {
+    let textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "-9999px";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+    } catch (e) {
+        console.error(e);
+    }
+    document.body.removeChild(textArea);
+}
+
 function getRealtimeSatThuMetrics() {
     let matPrice = (typeof systemDatabase !== 'undefined' && systemDatabase.materialPrice) ? parseFloat(systemDatabase.materialPrice) : 0.3;
     let isEvent = (typeof EventManager !== 'undefined' && typeof EventManager.isEventCurrentlyActiveGMT7 === 'function')
