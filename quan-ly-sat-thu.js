@@ -1,5 +1,5 @@
 // Tên file: quan-ly-sat-thu.js
-// Chức năng: Quản lý Tab Sát Thủ - Nền hơi đỏ dark-wine, bỏ cột kéo, giờ dạng xHy sáng nét, copy chuẩn xác 100%, có thanh tiến độ trực quan.
+// Chức năng: Quản lý Tab Sát Thủ - Nền hơi đỏ, bỏ tiến độ tổng, tab team có mũi tên ▼, giờ nền xanh chữ trắng (0h khi chưa đi, xHy khi có lượt), tiến độ 3/3 chạy vạch màu % trực quan.
 // Con của file: index.html
 
 let activeSatThuTeamId = null;
@@ -25,7 +25,7 @@ function switchToSatThuTab() {
     }
 }
 
-// KHỞI TẠO BẢNG SÁT THỦ: NỀN HƠI ĐỎ, CÓ THANH TIẾN ĐỘ, BỎ CỘT KÉO
+// KHỞI TẠO BẢNG SÁT THỦ (ĐÃ BỎ THANH TIẾN ĐỘ TỔNG THEO YÊU CẦU)
 function initSatThuTableWorkspace() {
     let viewport = document.getElementById('active-panel-view-viewport');
     if (!viewport) return;
@@ -37,23 +37,10 @@ function initSatThuTableWorkspace() {
         panel.className = "w-full h-full flex flex-col gap-2 text-gray-200 select-none";
 
         panel.innerHTML = `
-            <!-- HÀNG SUB-TABS: TEAM A -> TEAM L -->
+            <!-- HÀNG SUB-TABS: TEAM A -> TEAM L CÓ MŨI TÊN ▼ -->
             <div class="flex items-center justify-between gap-2 pb-1.5 border-b border-rose-900/40 shrink-0">
                 <div class="flex-1 overflow-x-auto no-scrollbar">
                     <div class="flex items-center gap-1.5 min-w-max" id="sat-thu-sub-tabs-holder"></div>
-                </div>
-            </div>
-
-            <!-- THANH TIẾN ĐỘ TỔNG THỂ CỦA TEAM (MÀU ĐỎ HỒNG NEON) -->
-            <div class="bg-[#1b0d12] border border-rose-900/50 rounded-xl px-3 py-2 shrink-0 flex items-center justify-between gap-3 shadow-inner">
-                <div class="flex items-center gap-2">
-                    <span class="text-xs font-black text-rose-400 flex items-center gap-1.5 uppercase tracking-wide">
-                        <i class="fa-solid fa-fire text-rose-500"></i> Tiến Độ Sát Thủ:
-                    </span>
-                    <span id="sat-thu-progress-text" class="text-xs font-mono font-bold text-white">0 / 24 Lượt (0%)</span>
-                </div>
-                <div class="flex-1 max-w-xs bg-gray-900/90 h-2.5 rounded-full overflow-hidden border border-rose-950 p-0.5">
-                    <div id="sat-thu-progress-bar" class="h-full bg-gradient-to-r from-rose-600 via-pink-600 to-rose-400 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.6)]" style="width: 0%"></div>
                 </div>
             </div>
 
@@ -65,7 +52,7 @@ function initSatThuTableWorkspace() {
                             <tr class="text-rose-300/80 border-b border-rose-900/40 pb-2 uppercase text-[11px] font-bold">
                                 <th class="p-2.5 w-12 text-center">STT</th>
                                 <th class="p-2.5 w-[280px]">TÊN TÀI KHOẢN</th>
-                                <th class="p-2.5 w-20 text-center">CHECK</th>
+                                <th class="p-2.5 w-24 text-center">CHECK</th>
                                 <th class="p-2.5 text-center w-[230px]">TIẾN ĐỘ SÁT THỦ</th>
                                 <th class="p-2.5 w-14 text-center">KHÓA</th>
                                 <th class="p-2.5 w-14 text-center">COPY</th>
@@ -91,13 +78,16 @@ function renderSatThuMainUI() {
         activeSatThuTeamId = dataTeams[0].id;
     }
 
+    // VẼ CÁC NÚT TEAM A -> L KÈM MŨI TÊN ▼ CHỈA XUỐNG KHI ĐƯỢC CHỌN
     let holder = document.getElementById('sat-thu-sub-tabs-holder');
     if (holder) {
         holder.innerHTML = dataTeams.map(t => {
             let isActive = t.id === activeSatThuTeamId;
             return `
                 <button onclick="selectSatThuSubTeam('${t.id}')" class="px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${isActive ? 'bg-rose-600 text-white shadow-md border border-rose-400/50' : 'bg-[#220d14] text-rose-300/70 border border-rose-950 hover:text-white hover:bg-rose-900/50'}">
-                    <i class="fa-solid fa-users text-[10px]"></i> ${t.name.toUpperCase()}
+                    <i class="fa-solid fa-users text-[10px]"></i>
+                    <span>${t.name.toUpperCase()}</span>
+                    ${isActive ? '<i class="fa-solid fa-caret-down text-[11px] ml-0.5 text-white animate-bounce"></i>' : ''}
                 </button>
             `;
         }).join('');
@@ -111,7 +101,7 @@ function selectSatThuSubTeam(tId) {
     renderSatThuMainUI();
 }
 
-// VẼ CÁC HÀNG: GIỜ DẠNG xHy SÁNG NÉT, NÚT COPY CHUẨN, BỎ CỘT KÉO
+// VẼ CÁC HÀNG VỚI TIẾN ĐỘ CHẠY MÀU % VÀ GIỜ NỀN XANH
 function renderSatThuTableRows() {
     let tbody = document.getElementById('sat-thu-table-body-rows');
     if (!tbody || typeof systemDatabase === 'undefined') return;
@@ -120,11 +110,6 @@ function renderSatThuTableRows() {
     if (!team) return;
 
     let allDataTeams = systemDatabase.teams.filter(t => t.type === 'data');
-    
-    // Tính toán tiến độ tổng cho thanh Progress bar
-    let totalTeamRuns = 0;
-    let maxPossibleRuns = team.memberIds.length * 3;
-
     let rowsHtml = "";
 
     team.memberIds.forEach((mId, index) => {
@@ -133,19 +118,16 @@ function renderSatThuTableRows() {
 
         let runs = parseInt(m.satThuRuns) || 0;
         let isLocked = m.satThuLocked === true || m.satThuLocked === "true";
-        if (!isLocked) totalTeamRuns += runs;
-
         let fullTitle = (typeof getMemberFullDisplayTitle === 'function') ? getMemberFullDisplayTitle(m, team) : (m.name || `Tài khoản ${index + 1}`);
 
-        // ĐỊNH DẠNG GIỜ CHUẨN xHy (Ví dụ: 8H30)
-        let timeDisplay = m.satThuCheckTime;
-        if (!timeDisplay) {
-            let now = new Date();
-            let hh = now.getHours();
-            let mm = String(now.getMinutes()).padStart(2, '0');
-            timeDisplay = `${hh}H${mm}`;
-            m.satThuCheckTime = timeDisplay;
-        }
+        // 1. GIỜ CHECK: NẾU CHƯA CÓ LƯỢT (0/3) THÌ LÀ "0h", CÓ LƯỢT THÌ HIỆN DẠNG "xHy"
+        let timeDisplay = (runs === 0) ? "0h" : (m.satThuCheckTime || "0h");
+
+        // 2. TÍNH PHẦN TRĂM TIẾN ĐỘ 3/3 ĐỂ CHẠY THANH MÀU
+        let percent = Math.round((runs / 3) * 100);
+        let progressFillClass = "bg-rose-600";
+        if (runs === 3) progressFillClass = "bg-emerald-500";
+        else if (runs > 0) progressFillClass = "bg-rose-600";
 
         let teamOptions = allDataTeams.map(t => `
             <option value="${t.id}" ${t.id === team.id ? 'selected' : ''} class="bg-gray-900 text-white">- ${t.name.toUpperCase()} -</option>
@@ -156,16 +138,23 @@ function renderSatThuTableRows() {
                 <td class="p-2.5 text-center font-mono text-rose-400/80 font-bold">${index + 1}</td>
                 <td class="p-2.5 font-bold text-gray-100 truncate max-w-[280px]">${fullTitle}</td>
                 
-                <!-- GIỜ CHECK SÁNG RÕ RÀNG DẠNG xHy (VD: 8H30) -->
+                <!-- GIỜ CHECK: NỀN XANH BIỂN, CHỮ TRẮNG, TO DÀY THEO CHIỀU DỌC (py-1.5 px-3) -->
                 <td class="p-2.5 text-center">
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-black bg-rose-950/90 text-rose-300 border border-rose-600/80 shadow-[0_0_8px_rgba(244,63,94,0.3)]">${timeDisplay}</span>
+                    <span class="inline-block py-1.5 px-3 rounded-lg text-xs font-mono font-black bg-blue-600 text-white border border-blue-400/50 shadow-md tracking-wider">${timeDisplay}</span>
                 </td>
 
+                <!-- TIẾN ĐỘ SÁT THỦ 3/3: CÓ THANH FILL MÀU CHẠY ĐỘNG THEO % (0% -> 33% -> 66% -> 100%) -->
                 <td class="p-2.5 text-center">
                     <div class="flex items-center justify-center gap-1.5 bg-[#100508] p-1 rounded-lg border border-rose-900/60 w-[210px] mx-auto shadow-inner">
-                        <button onclick="changeSatThuRunProgress('${m.id}', -1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-rose-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition">-</button>
-                        <span class="flex-1 text-center font-mono font-bold ${runs >= 3 ? 'text-emerald-400' : 'text-rose-300'} text-xs">${runs} / 3</span>
-                        <button onclick="changeSatThuRunProgress('${m.id}', 1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-emerald-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition">+</button>
+                        <button onclick="changeSatThuRunProgress('${m.id}', -1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-rose-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition shrink-0">-</button>
+                        
+                        <!-- Ô hiển thị tiến độ có thanh màu chạy bên trong -->
+                        <div class="relative flex-1 h-6 rounded overflow-hidden bg-gray-950 border border-rose-950 flex items-center justify-center font-mono font-bold text-xs">
+                            <div class="absolute left-0 top-0 h-full ${progressFillClass} transition-all duration-300" style="width: ${percent}%"></div>
+                            <span class="relative z-10 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">${runs} / 3</span>
+                        </div>
+
+                        <button onclick="changeSatThuRunProgress('${m.id}', 1)" ${isLocked ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950 hover:bg-rose-800 text-emerald-300 font-bold flex items-center justify-center cursor-pointer disabled:opacity-20 transition shrink-0">+</button>
                     </div>
                 </td>
 
@@ -175,7 +164,6 @@ function renderSatThuTableRows() {
                     </button>
                 </td>
 
-                <!-- NÚT COPY CHUẨN XÁC VỚI FALLBACK -->
                 <td class="p-2.5 text-center">
                     <button onclick="copySatThuName('${m.name || ''}', this)" class="w-6 h-6 rounded bg-rose-950/80 hover:bg-rose-700 text-rose-300 hover:text-white border border-rose-800 transition flex items-center justify-center mx-auto cursor-pointer" title="Copy tên nhân vật">
                         <i class="fa-regular fa-copy text-[11px]"></i>
@@ -192,16 +180,9 @@ function renderSatThuTableRows() {
     });
 
     tbody.innerHTML = rowsHtml;
-
-    // Cập nhật giá trị hiển thị trên thanh tiến độ
-    let progPercent = maxPossibleRuns > 0 ? Math.round((totalTeamRuns / maxPossibleRuns) * 100) : 0;
-    let progTextEl = document.getElementById('sat-thu-progress-text');
-    let progBarEl = document.getElementById('sat-thu-progress-bar');
-    if (progTextEl) progTextEl.innerText = `${totalTeamRuns} / ${maxPossibleRuns} Lượt (${progPercent}%)`;
-    if (progBarEl) progBarEl.style.width = `${progPercent}%`;
 }
 
-// CẬP NHẬT TIẾN ĐỘ, TỰ ĐỘNG CẬP NHẬT GIỜ CHECK THỰC TẾ
+// CẬP NHẬT TIẾN ĐỘ: NẾU VỀ 0 -> 0h, NẾU >0 -> LƯU MỐC GIỜ xHy
 function changeSatThuRunProgress(mId, delta) {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.members) return;
     let m = systemDatabase.members[mId];
@@ -215,9 +196,13 @@ function changeSatThuRunProgress(mId, delta) {
         m.satThuRuns = next;
         m.nganPhieu = Math.max(0, (parseInt(m.nganPhieu) || 0) + diff);
 
-        // Cập nhật mốc giờ check khi có thay đổi lượt
-        let now = new Date();
-        m.satThuCheckTime = `${now.getHours()}H${String(now.getMinutes()).padStart(2, '0')}`;
+        // Xử lý mốc giờ: 0 lượt là 0h, có lượt là giờ thực tế xHy
+        if (next === 0) {
+            m.satThuCheckTime = "0h";
+        } else {
+            let now = new Date();
+            m.satThuCheckTime = `${now.getHours()}H${String(now.getMinutes()).padStart(2, '0')}`;
+        }
 
         renderSatThuTableRows();
 
@@ -256,7 +241,6 @@ function moveSatThuMemberToOtherTeam(mId, targetTeamId) {
     }
 }
 
-// HÀM COPY HOẠT ĐỘNG CHẮC CHẮN TRÊN MỌI TRÌNH DUYỆT (KÈM FEEDBACK ICON TÍCH XANH)
 function copySatThuName(text, btnElement) {
     if (!text) return;
 
