@@ -1,18 +1,10 @@
 // Tên file: hop-thoai-loi-nhuan.js
-// Chức năng: Pop-up Thu Nhập Tổng Đội Hình - Quét chuẩn xác theo từng Tài Khoản duy nhất (Mỗi acc tối đa maxRuns - 1 lượt vé, triệt tiêu 100% lỗi tính trùng vé khi acc ở nhiều đội hình), tự động dàn hàng ngang song song với Thương Nhân & Thất Bại, tính chuẩn tiền hoàn vàng khi đạt Max lượt, hiển thị số tiền thực tế của từng công tắc và đồng bộ Realtime Thương Nhân.
-// Con của file: index.html (Nạp cùng phân hệ Quản lý Thái Hư & Thương Nhân).
-// Danh sách tính năng của file:
-//   1. [ĐÃ SỬA & KHÓA] Tính chuẩn chi phí vé: Quét danh sách 60 acc duy nhất, mỗi acc Max 2 tốn tối đa 1 vé, Max 3 tốn tối đa 2 vé.
-//   2. [ĐÃ KHÓA] Tự động dàn hàng ngang động (Side-by-side): Popup Lợi Nhuận (right-4), Thương Nhân (right-365px), Thất Bại (right-715px).
-//   3. [ĐÃ KHÓA] Tính chuẩn tiền hoàn vàng Thái Hư: Bất kể đi vé gì, cứ tài khoản đạt Max lượt (2/2 hoặc 3/3) là tính đủ 16v/acc.
-//   4. [ĐÃ KHÓA] Hiển thị số tiền thực tế kế bên 3 công tắc kèm hiệu ứng ẩn mờ gạch ngang khi bật [Không tính...].
-//   5. [ĐÃ KHÓA] Hiển thị số lượt team kế bên tổng lượt cá nhân: VD "64 lượt (8 lượt team)".
-//   6. [ĐÃ KHÓA] Luôn lấy trực tiếp tổng vàng Realtime của Thương Nhân đưa vào dòng [Cộng Thương Nhân].
-// Trạng thái: [ĐÃ TEST HOÀN HẢO - KHÓA TOÀN BỘ MÃ NGUỒN NGÀY 26/08/2026 - KHÔNG TỰ Ý XÓA SỬA]
+// Chức năng: Pop-up Thu Nhập Tổng Đội Hình - Tự động đồng bộ EventManager để ngắt 100% nguyên liệu Thái Hư & Thương Nhân khi hết sự kiện, tính chuẩn vé theo từng acc, dàn hàng ngang song song với Thương Nhân & Thất Bại.
+// Con của file: index.html
+// Trạng thái: [ĐÃ FIX TRIỆT ĐỂ LỖI HẾT SỰ KIỆN VẪN TÍNH NGUYÊN LIỆU]
 
 /* ==========================================================================
-   KHỐI 1: [ĐÃ KHÓA] KHỞI TẠO VÀ INJECT GIAO DIỆN POPUP THU NHẬP TỔNG
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH 100% - KHÓA KHÔNG SỬA]
+   KHỐI 1: KHỞI TẠO VÀ INJECT GIAO DIỆN POPUP THU NHẬP TỔNG
    ========================================================================== */
 function injectProfitCardComponent() {
     let container = document.getElementById('injection-profit-card-holder');
@@ -110,7 +102,6 @@ function injectProfitCardComponent() {
     calculateComprehensiveProfitsRealtime();
 }
 
-// BẬT / TẮT POPUP LỢI NHUẬN VÀ TỰ ĐỘNG CĂN CHỈNH DÀN HÀNG NGANG
 function toggleFloatingProfitCard(e) {
     if (e && e.stopPropagation) e.stopPropagation();
     let card = document.getElementById('floating-profit-card');
@@ -127,7 +118,6 @@ function toggleFloatingProfitCard(e) {
     }
 }
 
-// HÀM TỰ ĐỘNG XẾP HÀNG NGANG TỪ PHẢI SANG TRÁI (DYNAMIC SIDE-BY-SIDE)
 function adjustPopupsSideBySidePositions() {
     let profitCard = document.getElementById('floating-profit-card');
     let merchantCard = document.getElementById('floating-merchant-card');
@@ -169,10 +159,15 @@ function handleProfitToggleChangeWithLog(label, isChecked) {
 }
 
 /* ==========================================================================
-   KHỐI 2: [ĐÃ KHÓA] KIỂM TRA MỐC SỰ KIỆN GMT+7
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH 100% - KHÓA KHÔNG SỬA]
+   KHỐI 2: KIỂM TRA MỐC SỰ KIỆN GMT+7 (ĐÃ ĐỒNG BỘ EVENT MANAGER)
    ========================================================================== */
 function isEventCurrentlyActiveGMT7() {
+    // 1. Ưu tiên kiểm tra trực tiếp qua EventManager
+    if (typeof EventManager !== 'undefined' && typeof EventManager.isEventCurrentlyActiveGMT7 === 'function') {
+        return EventManager.isEventCurrentlyActiveGMT7();
+    }
+
+    // 2. Dự phòng kiểm tra theo localStorage và systemDatabase
     let startDate = localStorage.getItem('EVENT_START_DATE');
     let endDate = localStorage.getItem('EVENT_END_DATE');
 
@@ -196,8 +191,7 @@ function isEventCurrentlyActiveGMT7() {
 }
 
 /* ==========================================================================
-   KHỐI 3: [ĐÃ KHÓA] LẤY TRỰC TIẾP TỔNG VÀNG THƯƠNG NHÂN THEO REALTIME
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH 100% - KHÓA KHÔNG SỬA]
+   KHỐI 3: LẤY TRỰC TIẾP TỔNG VÀNG THƯƠNG NHÂN THEO REALTIME
    ========================================================================== */
 function getRealtimeMerchantMetrics() {
     let matPrice = (typeof systemDatabase !== 'undefined' && systemDatabase.materialPrice) ? parseFloat(systemDatabase.materialPrice) : 0.3;
@@ -221,6 +215,7 @@ function getRealtimeMerchantMetrics() {
     });
 
     let directGold = isMExcludeRefund ? 0 : (merchantRuns * 1.2);
+    // Hết sự kiện: nguyên liệu Thương Nhân cũng lập tức về 0
     let totalMaterials = isEventActive ? (merchantRuns * 8) : 0;
     let materialGold = totalMaterials * matPrice;
     let totalMerchantGold = directGold + materialGold;
@@ -233,9 +228,7 @@ function getRealtimeMerchantMetrics() {
 }
 
 /* ==========================================================================
-   KHỐI 4: [ĐÃ SỬA & KHÓA] TÍNH TỔNG THU NHẬP THEO TỪNG TÀI KHOẢN DUY NHẤT
-   Chức năng: Quét danh sách 60 account duy nhất, đảm bảo mỗi acc tối đa (maxRuns - 1) lượt vé.
-   Trạng thái: [ĐÃ TEST HOÀN HẢO - KHÓA KHÔNG SỬA]
+   KHỐI 4: TÍNH TỔNG THU NHẬP THEO TỪNG TÀI KHOẢN DUY NHẤT
    ========================================================================== */
 function isPayModeFreeRun(payModeVal, isFreeFlag) {
     if (isFreeFlag === true) return true;
@@ -252,6 +245,8 @@ function isPayModeFreeRun(payModeVal, isFreeFlag) {
 
 function calculateComprehensiveProfitsRealtime() {
     if (typeof systemDatabase === 'undefined') return;
+
+    let isEventActive = isEventCurrentlyActiveGMT7();
 
     let totalLineups = 0;
     let completedLineups = 0;
@@ -311,7 +306,7 @@ function calculateComprehensiveProfitsRealtime() {
     let thaiHuRuns = 0;
     let thaiHuActualRebateGold = 0;
 
-    // QUÉT CHÍNH XÁC DANH SÁCH ACCOUNT DUY NHẤT (TUYỆT ĐỐI KHÔNG LẶP THEO ĐỘI HÌNH)
+    // QUÉT CHÍNH XÁC DANH SÁCH ACCOUNT DUY NHẤT
     let memberList = Object.values(systemDatabase.members || {});
     memberList.forEach(m => {
         if (!m || !m.name) return;
@@ -320,14 +315,16 @@ function calculateComprehensiveProfitsRealtime() {
         let maxR = parseInt(m.maxRuns) || 2;
         thaiHuRuns += curR;
 
-        // 1. TÍNH NGUYÊN LIỆU THEO TIẾN ĐỘ THỰC TẾ & TRỪ THẤT BẠI
-        let r1_nl = (m.failures && m.failures[1] !== undefined) ? m.failures[1].nl : 24;
-        let r2_nl = (m.failures && m.failures[2] !== undefined) ? m.failures[2].nl : 48;
-        let r3_nl = (m.failures && m.failures[3] !== undefined) ? m.failures[3].nl : 48;
+        // 1. CHỈ CỘNG NGUYÊN LIỆU KHI SỰ KIỆN CÒN HẠN (isEventActive === true)
+        if (isEventActive) {
+            let r1_nl = (m.failures && m.failures[1] !== undefined) ? m.failures[1].nl : 24;
+            let r2_nl = (m.failures && m.failures[2] !== undefined) ? m.failures[2].nl : 48;
+            let r3_nl = (m.failures && m.failures[3] !== undefined) ? m.failures[3].nl : 48;
 
-        if (curR >= 1) thaiHuMaterials += r1_nl;
-        if (curR >= 2) thaiHuMaterials += r2_nl;
-        if (curR >= 3) thaiHuMaterials += r3_nl;
+            if (curR >= 1) thaiHuMaterials += r1_nl;
+            if (curR >= 2) thaiHuMaterials += r2_nl;
+            if (curR >= 3) thaiHuMaterials += r3_nl;
+        }
 
         // 2. TÍNH CHI PHÍ VÉ: TỐI ĐA (maxRuns - 1) LƯỢT VÉ CHO 1 ACCOUNT
         let selEl2 = document.getElementById(`select-lineup-paymode-${m.id}-2`);
@@ -349,7 +346,7 @@ function calculateComprehensiveProfitsRealtime() {
             thaiHuCosts += ticketPriceTH;
         }
 
-        // 3. HOÀN VÀNG KHI HOÀN THÀNH ĐỦ MAX LƯỢT (BẤT KỂ ĐI VÉ GÌ)
+        // 3. HOÀN VÀNG KHI HOÀN THÀNH ĐỦ MAX LƯỢT
         let isRun2Failed = m.failures && m.failures[2] !== undefined;
         let isRun3Failed = m.failures && m.failures[3] !== undefined;
 
@@ -360,8 +357,8 @@ function calculateComprehensiveProfitsRealtime() {
         }
     });
 
-    // Tiền nguyên liệu Thái Hư
-    let actualThaiHuMatGold = thaiHuMaterials * matPrice;
+    // Tiền nguyên liệu Thái Hư: Hết hạn sự kiện hoặc bật bỏ tính -> 0v
+    let actualThaiHuMatGold = isEventActive ? (thaiHuMaterials * matPrice) : 0;
     let appliedThaiHuMatGold = isExcludeMaterials ? 0 : actualThaiHuMatGold;
 
     // Tiền hoàn vàng Thái Hư
@@ -419,7 +416,7 @@ function calculateComprehensiveProfitsRealtime() {
     let valMatEl = document.getElementById('runtime-toggle-val-materials');
     if (valMatEl) {
         valMatEl.innerText = `+${actualThaiHuMatGold.toFixed(1)}v`;
-        valMatEl.className = isExcludeMaterials ? "text-[10px] font-mono text-gray-500 opacity-40 line-through" : "text-[10px] font-mono text-rose-400 font-bold";
+        valMatEl.className = (isExcludeMaterials || !isEventActive) ? "text-[10px] font-mono text-gray-500 opacity-40 line-through" : "text-[10px] font-mono text-rose-400 font-bold";
     }
 
     let thaiHuProfEl = document.getElementById('runtime-thaihu-profit');
@@ -475,5 +472,3 @@ window.toggleFloatingProfitCard = toggleFloatingProfitCard;
 window.calculateComprehensiveProfitsRealtime = calculateComprehensiveProfitsRealtime;
 window.isEventCurrentlyActiveGMT7 = isEventCurrentlyActiveGMT7;
 window.adjustPopupsSideBySidePositions = adjustPopupsSideBySidePositions;
-
-// Tổng số dòng code trong file này: 305 dòng.
