@@ -151,7 +151,7 @@ function injectSatThuStatsPopupComponent() {
 
     let widget = document.createElement('div');
     widget.id = 'sat-thu-stats-floating-widget';
-    // ĐÃ HẠ XUỐNG top-[92px] NGANG HÀNG NÚT TEAM A -> TEAM L
+    // ĐÃ HẠ XUỐNG top-[135px] NGANG HÀNG NÚT TEAM A -> TEAM L
     widget.className = "fixed right-2.5 top-[92px] z-40 select-none transition-all duration-200 hidden font-sans";
 
     widget.innerHTML = `
