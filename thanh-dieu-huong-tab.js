@@ -93,6 +93,10 @@ function injectMainTabsComponent() {
             <button onclick="handleMainTabSwitch('merchant')" id="btn-main-tab-merchant" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
                 <i class="fa-solid fa-coins text-amber-400"></i> Quản Lý Thương Nhân
             </button>
+            <!-- 6. SÁT THỦ] -->
+            <button id="main-nav-tab-sat-thu" onclick="switchToSatThuTab()" class="px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition text-gray-400 hover:text-rose-400 border border-transparent">
+    <i class="fa-solid fa-skull text-rose-500"></i> SÁT THỦ
+</button>
 
             <!-- 3. SO SÁNH TỐI ƯU -->
             <button onclick="handleMainTabSwitch('optimize')" id="btn-main-tab-optimize" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
