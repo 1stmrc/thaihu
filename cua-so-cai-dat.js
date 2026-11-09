@@ -1,5 +1,5 @@
 // Tên file: cua-so-cai-dat.js
-// Chức năng: Khung HTML Cài Đặt Hệ Thống - Lấy kích thước chuẩn từ Hình 1 (chứa vừa 8 dòng), khóa cứng cho tất cả các Tab.
+// Chức năng: Khung HTML Cài Đặt Hệ Thống - Lấy kích thước chuẩn từ Hình 1 (chứa vừa 8 dòng), khóa cứng cho tất cả các Tab, tích hợp vùng danh sách lịch sử sự kiện.
 // Con của file: index.html
 
 function injectSettingsModalComponent() {
@@ -35,7 +35,7 @@ function injectSettingsModalComponent() {
                     <!-- THÂN CÁC TAB NỘI DUNG (CỐ ĐỊNH CHIỀU CAO CHUẨN) -->
                     <div class="relative w-full flex-1 overflow-hidden">
                         
-                        <!-- TAB 1: MỐC LƯỢT (Danh sách dài h-[480px] chứa đúng 8 dòng như Hình 1) -->
+                        <!-- TAB 1: MỐC LƯỢT (Danh sách dài h-[480px] chứa đúng 8 dòng) -->
                         <div id="view-modal-tab-runs" class="modal-tab-panel flex flex-col gap-2 h-full">
                             <div class="flex items-center justify-between gap-2 shrink-0">
                                 <label class="text-xs font-bold text-gray-300">Chọn Nhóm Cài Đặt Lượt:</label>
@@ -66,28 +66,41 @@ function injectSettingsModalComponent() {
                             </div>
                         </div>
 
-                        <!-- TAB 4: SỰ KIỆN -->
-                        <div id="view-modal-tab-event" class="modal-tab-panel hidden flex flex-col gap-3 h-full justify-start">
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs font-bold text-amber-400 flex items-center gap-1">
-                                    <i class="fa-solid fa-pen-to-square"></i> Tên Sự Kiện:
-                                </label>
-                                <input id="input-event-name-custom" type="text" placeholder="Nhập tên sự kiện..." class="w-full bg-gray-800 border border-amber-500/50 rounded-lg px-3 py-2 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-400 shadow-inner">
+                        <!-- TAB 4: SỰ KIỆN (Có ô nhập hiện hành và danh sách lịch sử bên dưới) -->
+                        <div id="view-modal-tab-event" class="modal-tab-panel hidden flex flex-col gap-2.5 h-full justify-start overflow-hidden">
+                            <div class="bg-gray-955 p-2.5 rounded-xl border border-gray-800 shrink-0 flex flex-col gap-2">
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-xs font-bold text-amber-400 flex items-center gap-1">
+                                        <i class="fa-solid fa-pen-to-square"></i> Tên Sự Kiện Đang Dùng:
+                                    </label>
+                                    <input id="input-event-name-custom" type="text" placeholder="Nhập tên sự kiện..." class="w-full bg-gray-800 border border-amber-500/50 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-400 shadow-inner">
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] text-gray-400 mb-1 font-bold">Ngày Bắt Đầu SK:</label>
+                                        <input id="input-event-start-date" type="date" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white font-bold text-center focus:outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-gray-400 mb-1 font-bold">Ngày Kết Thúc SK:</label>
+                                        <input id="input-event-end-date" type="date" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white font-bold text-center focus:outline-none">
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-2 bg-gray-955 p-3 rounded-xl border border-gray-800">
-                                <div>
-                                    <label class="block text-[10px] text-gray-400 mb-1 font-bold">Ngày Bắt Đầu SK:</label>
-                                    <input id="input-event-start-date" type="date" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white font-bold text-center focus:outline-none">
+                            <!-- KHUNG HIỂN THỊ DANH SÁCH LỊCH SỬ CÁC SỰ KIỆN ĐÃ TỪNG CÓ -->
+                            <div class="flex-1 flex flex-col min-h-0 bg-gray-955 rounded-xl border border-gray-800 overflow-hidden">
+                                <div class="bg-gray-850 px-3 py-1.5 text-[10px] font-black text-amber-400/90 uppercase tracking-wider border-b border-gray-800 flex items-center justify-between shrink-0">
+                                    <span><i class="fa-solid fa-list-check mr-1"></i> Danh Sách Sự Kiện Đã Lưu</span>
+                                    <span class="text-gray-400 font-normal lowercase">(chọn để kích hoạt lại)</span>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] text-gray-400 mb-1 font-bold">Ngày Kết Thúc SK:</label>
-                                    <input id="input-event-end-date" type="date" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-white font-bold text-center focus:outline-none">
+                                <div id="events-history-list" class="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar text-xs">
+                                    <!-- Render động từ hàm renderEventsHistoryUI() -->
                                 </div>
                             </div>
 
-                            <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[11px] text-amber-200 mt-2">
-                                <i class="fa-solid fa-circle-info text-amber-400 mr-1"></i> Thiết lập mốc thời gian này để hệ thống tự động lọc và tích lũy quẻ Đoài kiếm được chính xác.
+                            <div class="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[10px] text-amber-200 shrink-0">
+                                <i class="fa-solid fa-circle-info text-amber-400 mr-1"></i> Tự động kiểm tra thời hạn: Hết hạn sẽ ngắt tính nguyên liệu và đánh dấu hết hạn.
                             </div>
                         </div>
 
