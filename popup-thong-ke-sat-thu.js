@@ -1,11 +1,10 @@
 // Tên file: popup-thong-ke-sat-thu.js
-// Chức năng: Widget Thống Kê Sát Thủ - Biểu đồ tròn Đỏ Light Neon, nút [X] tắt gọn, tính Vàng/NL hôm nay (bám ngày sự kiện) và Tổng Vàng/NL trong cả đợt sự kiện.
+// Chức năng: Widget Thống Kê Sát Thủ - Tọa độ hạ ngang đỉnh hàng sub-tabs Team, Master Hub dữ liệu chuẩn xác.
 // Con của file: index.html
 
 const SAT_THU_STORAGE_KEY = 'SYSTEM_SAT_THU_ANALYTICS_V1';
 let isSatThuStatsCollapsed = false;
 
-// 1. KIỂM TRA KHUNG GIỜ NHIỆM VỤ SÁT THỦ (Chạy ngầm, không show giao diện)
 function isSatThuEventSessionActive() {
     let now = new Date();
     let dayOfWeek = now.getDay();
@@ -19,11 +18,9 @@ function isSatThuEventSessionActive() {
     };
 }
 
-// 2. TÍNH TỔNG DỮ LIỆU TÀI CHÍNH & TIẾN ĐỘ SÁT THỦ HÔM NAY VÀ TRONG CẢ ĐỢT SỰ KIỆN
 function getSatThuMasterAnalyticsData() {
     let matPrice = (typeof systemDatabase !== 'undefined' && systemDatabase.materialPrice) ? parseFloat(systemDatabase.materialPrice) : 0.3;
     
-    // Kiểm tra trạng thái sự kiện hôm nay chuẩn GMT+7
     let isEventToday = false;
     if (typeof EventManager !== 'undefined' && typeof EventManager.isEventCurrentlyActiveGMT7 === 'function') {
         isEventToday = EventManager.isEventCurrentlyActiveGMT7();
@@ -52,14 +49,12 @@ function getSatThuMasterAnalyticsData() {
     let remainingAccs = Math.max(0, totalAccs - completed3RunsCount);
     let percent = maxPossibleRuns > 0 ? Math.round((totalDoneRuns / maxPossibleRuns) * 100) : 0;
 
-    // TÀI CHÍNH HÔM NAY: 1.2v/lượt, Nguyên liệu chỉ có khi đang trong ngày sự kiện (+18 NL/lượt)
     let todayDirectGold = totalDoneRuns * 1.2;
     let todayMaterials = isEventToday ? (totalDoneRuns * 18) : 0;
     let todayMaterialGold = todayMaterials * matPrice;
     let todayTotalGold = todayDirectGold + todayMaterialGold;
     let todayNganPhieu = totalDoneRuns;
 
-    // THỜI GIAN TRUNG BÌNH 1 TÀI KHOẢN & HOÀN TẤT TOÀN BỘ
     let avgAccFormatted = "--:--";
     let avgTotalFormatted = "--:--";
 
@@ -80,8 +75,6 @@ function getSatThuMasterAnalyticsData() {
         avgTotalFormatted = `${mTotal}p ${sTotal.toString().padStart(2, '0')}s`;
     }
 
-    // TÍNH TỔNG VÀNG VÀ NGUYÊN LIỆU TRONG CẢ KỲ SỰ KIỆN
-    // Tích lũy từ lịch sử các snapshot trước đó + dữ liệu chạy hôm nay
     let eventTotalGold = todayTotalGold;
     let eventTotalMaterials = todayMaterials;
 
@@ -126,22 +119,18 @@ function getSatThuMasterAnalyticsData() {
         remainingAccs: remainingAccs,
         percent: percent,
 
-        // Tài chính hôm nay
         todayGold: todayTotalGold,
         todayMaterials: todayMaterials,
         nganPhieu: todayNganPhieu,
 
-        // Tài chính cả đợt sự kiện
         eventTotalGold: eventTotalGold,
         eventTotalMaterials: eventTotalMaterials,
 
-        // Vận tốc
         avgTimePerAcc: avgAccFormatted,
         avgTimeToCompleteAll: avgTotalFormatted
     };
 }
 
-// 3. TỰ ĐỘNG ĐO VỊ TRÍ & ĐỘ RỘNG BÁM CỘT COPY -> MÉP PHẢI
 function updatePopupPositionAndWidth() {
     let card = document.getElementById('sat-thu-stats-main-card');
     if (!card || isSatThuStatsCollapsed) return;
@@ -156,23 +145,21 @@ function updatePopupPositionAndWidth() {
     }
 }
 
-// 4. KHỞI TẠO POPUP GIAO DIỆN MỚI
 function injectSatThuStatsPopupComponent() {
     let existing = document.getElementById('sat-thu-stats-floating-widget');
     if (existing) return;
 
     let widget = document.createElement('div');
     widget.id = 'sat-thu-stats-floating-widget';
+    // ĐÃ HẠ XUỐNG top-[92px] NGANG HÀNG NÚT TEAM A -> TEAM L
     widget.className = "fixed right-2.5 top-[92px] z-40 select-none transition-all duration-200 hidden font-sans";
+
     widget.innerHTML = `
-        <!-- NÚT MŨI TÊN NHỎ GỌN Ở GIỮA MÉP PHẢI ĐỂ MỞ LẠI KHI ĐÃ ĐÓNG [X] -->
         <button id="sat-thu-stats-toggle-btn" onclick="toggleSatThuStatsCollapse()" class="hidden fixed right-0 top-1/2 -translate-y-1/2 bg-[#05131a] hover:bg-cyan-950 border-l border-y border-cyan-400 text-cyan-300 w-6 h-12 rounded-l-lg shadow-[0_0_15px_rgba(6,182,212,0.5)] cursor-pointer flex items-center justify-center transition z-50 group" title="Mở lại Thống Kê Sát Thủ">
             <i class="fa-solid fa-chevron-left text-xs group-hover:-translate-x-0.5 transition-transform"></i>
         </button>
 
-        <!-- BẢNG POPUP XANH LIGHT ĐIỆN TỬ - BIỂU ĐỒ ĐỎ LIGHT NEON -->
         <div id="sat-thu-stats-main-card" class="w-[230px] bg-[#030d14]/95 backdrop-blur-md border-2 border-cyan-400 rounded-2xl p-3 shadow-[0_0_25px_rgba(6,182,212,0.4)] text-gray-200 flex flex-col gap-2.5">
-            <!-- HEADER VÀ NÚT [X] ĐÓNG GỌN GÀNG -->
             <div class="flex items-center justify-between border-b border-cyan-900/60 pb-1.5">
                 <span class="text-xs font-black text-cyan-300 uppercase tracking-wider flex items-center gap-1.5 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
                     <i class="fa-solid fa-chart-pie text-cyan-400"></i> HIỆU SUẤT SÁT THỦ
@@ -187,13 +174,11 @@ function injectSatThuStatsPopupComponent() {
                 <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
                     <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
                         <path class="text-gray-900" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <!-- VẠCH TIẾN ĐỘ ĐỎ LIGHT NEON RỰC SÁNG -->
                         <path id="sat-thu-pie-progress-circle" class="text-rose-500 transition-all duration-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.9)]" stroke-dasharray="0, 100" stroke-linecap="round" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
                     <span id="sat-thu-pie-percent-text" class="absolute font-mono font-black text-sm text-rose-300 drop-shadow-[0_0_6px_rgba(244,63,94,0.8)]">0%</span>
                 </div>
                 
-                <!-- THÔNG SỐ ÉP DỌC CHỮ TO RÕ RÀNG -->
                 <div class="w-full flex flex-col gap-1 border-t border-cyan-900/50 pt-2 font-mono">
                     <div class="flex justify-between items-center text-xs">
                         <span class="font-sans text-[11px] text-gray-400 font-bold">Tổng lượt:</span>
@@ -210,7 +195,7 @@ function injectSatThuStatsPopupComponent() {
                 </div>
             </div>
 
-            <!-- KHỐI 2: DOANH THU HÔM NAY (VÀNG & NGUYÊN LIỆU BÁM THEO NGÀY SỰ KIỆN) -->
+            <!-- KHỐI 2: DOANH THU HÔM NAY (VÀNG & NGUYÊN LIỆU) -->
             <div class="bg-[#061824] border border-cyan-800/80 p-2.5 rounded-xl flex flex-col gap-1.5 font-mono shadow-inner">
                 <span class="text-[10px] font-sans text-cyan-300 font-black uppercase tracking-wider border-b border-cyan-900/50 pb-1 flex items-center gap-1">
                     <i class="fa-solid fa-calendar-day text-amber-400"></i> HÔM NAY
@@ -225,7 +210,7 @@ function injectSatThuStatsPopupComponent() {
                 </div>
             </div>
 
-            <!-- KHỐI 3: VẬN TỐC THỜI GIAN TRUNG BÌNH -->
+            <!-- KHỐI 3: THỜI GIAN TRUNG BÌNH -->
             <div class="bg-[#061824] border border-cyan-800/80 p-2 rounded-xl flex flex-col gap-1.5 font-mono shadow-inner">
                 <div class="flex justify-between items-center border-b border-cyan-900/50 pb-1">
                     <span class="font-sans text-[10px] text-gray-400 font-bold uppercase">TB 1 Tài khoản:</span>
@@ -237,7 +222,7 @@ function injectSatThuStatsPopupComponent() {
                 </div>
             </div>
 
-            <!-- KHỐI 4: TỔNG VÀNG & NGUYÊN LIỆU TRONG CẢ KỲ SỰ KIỆN (MỞ RỘNG XUỐNG DƯỚI) -->
+            <!-- KHỐI 4: TỔNG VÀNG & NL CẢ KỲ SỰ KIỆN -->
             <div class="bg-[#081f2e] border-2 border-emerald-500/80 p-2.5 rounded-xl flex flex-col gap-1.5 font-mono shadow-[0_0_15px_rgba(16,185,129,0.25)]">
                 <span class="text-[10px] font-sans text-emerald-300 font-black uppercase tracking-wider border-b border-emerald-900/60 pb-1 flex items-center justify-between">
                     <span class="flex items-center gap-1"><i class="fa-solid fa-coins text-yellow-400"></i> CẢ ĐỢT SỰ KIỆN</span>
@@ -306,11 +291,9 @@ function hideSatThuStatsPopup() {
     if (toggleBtn) toggleBtn.classList.add('hidden');
 }
 
-// CẬP NHẬT DỮ LIỆU GIAO DIỆN REAL-TIME
 function updateSatThuStatsDashboardUI() {
     let data = getSatThuMasterAnalyticsData();
 
-    // 1. Cập nhật biểu đồ Đỏ Light Neon & tiến độ
     let circleEl = document.getElementById('sat-thu-pie-progress-circle');
     let textEl = document.getElementById('sat-thu-pie-percent-text');
     let fracEl = document.getElementById('sat-thu-total-runs-fraction');
@@ -323,19 +306,16 @@ function updateSatThuStatsDashboardUI() {
     if (doneAccEl) doneAccEl.innerText = `${data.completedAccs} acc`;
     if (remainAccEl) remainAccEl.innerText = `${data.remainingAccs} acc`;
 
-    // 2. Cập nhật doanh thu hôm nay
     let todayGoldEl = document.getElementById('sat-thu-today-gold');
     let todayMaterialsEl = document.getElementById('sat-thu-today-materials');
     if (todayGoldEl) todayGoldEl.innerText = `+${data.todayGold.toFixed(2)}v`;
     if (todayMaterialsEl) todayMaterialsEl.innerText = `${data.todayMaterials.toLocaleString('vi-VN')} NL`;
 
-    // 3. Cập nhật vận tốc trung bình
     let avgAccEl = document.getElementById('sat-thu-avg-acc-time');
     let avgTotalEl = document.getElementById('sat-thu-avg-total-time');
     if (avgAccEl) avgAccEl.innerText = data.avgTimePerAcc;
     if (avgTotalEl) avgTotalEl.innerText = data.avgTimeToCompleteAll;
 
-    // 4. Cập nhật tổng kết cả kỳ sự kiện
     let evGoldEl = document.getElementById('sat-thu-event-total-gold');
     let evMaterialsEl = document.getElementById('sat-thu-event-total-materials');
     if (evGoldEl) evGoldEl.innerText = `+${data.eventTotalGold.toFixed(2)}v`;
@@ -350,7 +330,6 @@ if (document.readyState === "loading") {
     injectSatThuStatsPopupComponent();
 }
 
-// XUẤT TOÀN CỤC CHO POPUP LỢI NHUẬN VÀ CÁC MODULE KHÁC GỌI
 window.getSatThuMasterAnalyticsData = getSatThuMasterAnalyticsData;
 window.injectSatThuStatsPopupComponent = injectSatThuStatsPopupComponent;
 window.showSatThuStatsPopup = showSatThuStatsPopup;
