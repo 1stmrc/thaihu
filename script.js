@@ -1,13 +1,6 @@
 // Tên file: script.js
-// Chức năng: Trung tâm điều phối lõi trạng thái hệ thống, khởi tạo định danh, nạp đè/chuyển giao tài khoản, quản lý Presets và đồng bộ giao diện.
+// Chức năng: Trung tâm điều phối lõi trạng thái hệ thống, khởi tạo định danh, nạp đè/chuyển giao tài khoản, quản lý Presets, chống đá văng tab khi gọi refresh và Master Override hàm Reset Ngày.
 // Con của file: index.html (Được nạp ở cuối cùng để khởi chạy toàn bộ luồng xử lý hệ thống).
-// Danh sách tính năng của file:
-//   1. Khởi tạo đối tượng systemDatabase và bộ sinh mã createUniqueId.
-//   2. Điều phối gán vị trí tài khoản vào Đội hình xếp (Lineup).
-//   3. Chuyển giao tài khoản giữa các team dữ liệu (Migration).
-//   4. Quản lý lưu, nạp, xóa Sơ đồ chiến thuật (Lineup Presets).
-//   5. Khởi động hệ thống khi tải trang hoàn tất qua initSystemEngine.
-// Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - KHÓA MÃ NGUỒN NGÀY 17/08/2026 - KHÔNG TỰ Ý XÓA SỬA]
 
 let systemDatabase = { 
     teams: [], 
@@ -29,7 +22,6 @@ let tokenCount = Date.now();
 
 /* ==========================================================================
    KHỐI 1: ĐIỀU PHỐI GÁN THÀNH VIÊN VÀO LINEUP & CHUYỂN TEAM
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 17/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
 function createUniqueId() { 
     tokenCount++; 
@@ -69,7 +61,7 @@ function executeRecordTeamMigration(memberId, sourceTeamId) {
     let sIdx = sTeam.memberIds.indexOf(memberId); 
     if(sIdx !== -1) { 
         let newBlankId = createUniqueId(); 
-        systemDatabase.members[newBlankId] = { id: newBlankId, name: "", maxRuns: 3, currentRuns: 0, originalTeamId: sourceTeamId, isEditing: true, freeRun2: false, freeRun3: false, skipStatNL: false }; 
+        systemDatabase.members[newBlankId] = { id: newBlankId, name: "", maxRuns: 3, currentRuns: 0, originalTeamId: sourceTeamId, isEditing: true, freeRun2: false, freeRun3: false, skipStatNL: false, merchantRuns: 0, satThuRuns: 0, nganPhieu: 0 }; 
         sTeam.memberIds[sIdx] = newBlankId; 
     }
     
@@ -79,7 +71,28 @@ function executeRecordTeamMigration(memberId, sourceTeamId) {
     if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
 }
 
+// KHÓA THÔNG MINH: CHỐNG TỰ ĐÁ VĂNG VỀ THÁI HƯ NẾU ĐANG Ở SÁT THỦ HOẶC THƯƠNG NHÂN
 function refreshUserInterfaceLayout() {
+    let satThuView = document.getElementById('tab-content-quan-ly-sat-thu');
+    let isCurrentlyAtSatThu = satThuView && !satThuView.classList.contains('hidden');
+
+    let merchantView = document.getElementById('tab-content-quan-ly-thuong-nhan');
+    let isCurrentlyAtMerchant = merchantView && !merchantView.classList.contains('hidden');
+
+    if (isCurrentlyAtSatThu) {
+        if (typeof renderSatThuTableRows === 'function') renderSatThuTableRows();
+        if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
+        if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
+        return;
+    }
+
+    if (isCurrentlyAtMerchant) {
+        if (typeof renderMerchantTableRows === 'function') renderMerchantTableRows();
+        if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
+        return;
+    }
+
+    // Chỉ thực thi vẽ giao diện Thái Hư khi thực sự đang ở tab Thái Hư
     if (typeof renderNavigationSubTabs === 'function') renderNavigationSubTabs(); 
     if (typeof renderActiveWorkspacePanel === 'function') renderActiveWorkspacePanel(); 
     if (typeof updateDeoStatisticsDisplays === 'function') updateDeoStatisticsDisplays(); 
@@ -92,6 +105,7 @@ function refreshUserInterfaceLayout() {
     
     if (typeof updateEventRangeLabel === 'function') updateEventRangeLabel(); 
     if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
+    if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
 }
 
 function toggleFloatingDeoCard() { 
@@ -132,7 +146,6 @@ function switchToDeoManagementTab() {
 
 /* ==========================================================================
    KHỐI 2: TỔ HỢP ĐỘI HÌNH PRESETS
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 17/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
 function renderPresetDropdownController() {
     let combo = document.getElementById('preset-combo-selector');
@@ -218,6 +231,70 @@ function deleteCurrentSelectedPreset() {
     if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
 }
 
-window.onload = initSystemEngine;
+/* ==========================================================================
+   KHỐI 3: MASTER OVERRIDE RESET NGÀY TOÀN DIỆN (ĐÈ BẸP HÀM RESET CŨ Ở CÁC FILE KHÁC)
+   ========================================================================== */
+function executeDailyResetPipeline() {
+    if (!confirm("Xác nhận RESET toàn bộ tiến độ ngày hôm nay (Bao gồm Thái Hư, Thương Nhân và Sát Thủ)?")) {
+        return;
+    }
 
-// Tổng số dòng code trong file này: 185 dòng.
+    if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
+
+    // Reset sạch dữ liệu cả 3 phân hệ
+    if (typeof systemDatabase !== 'undefined' && systemDatabase.members) {
+        Object.keys(systemDatabase.members).forEach(id => {
+            let m = systemDatabase.members[id];
+            if (!m) return;
+
+            // Thái Hư
+            m.currentRuns = 0;
+            m.freeRun2 = false;
+            m.freeRun3 = false;
+            m.failures = {};
+
+            // Thương Nhân
+            m.merchantRuns = 0;
+
+            // Sát Thủ
+            m.satThuRuns = 0;
+            delete m.satThuCheckTime;
+            delete m.satThuTimestamp;
+            delete m.satThuCompletedTimestamp;
+        });
+    }
+
+    // Kiểm tra vị trí đứng hiện tại
+    let satThuView = document.getElementById('tab-content-quan-ly-sat-thu');
+    let isAtSatThu = satThuView && !satThuView.classList.contains('hidden');
+
+    let merchantView = document.getElementById('tab-content-quan-ly-thuong-nhan');
+    let isAtMerchant = merchantView && !merchantView.classList.contains('hidden');
+
+    if (isAtSatThu) {
+        if (typeof renderSatThuTableRows === 'function') renderSatThuTableRows();
+        if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
+    } else if (isAtMerchant) {
+        if (typeof renderMerchantTableRows === 'function') renderMerchantTableRows();
+    } else {
+        if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity();
+        if (typeof renderThaiHuMainView === 'function') renderThaiHuMainView();
+        if (typeof renderNavigationSubTabs === 'function') renderNavigationSubTabs();
+        if (typeof renderActiveWorkspacePanel === 'function') renderActiveWorkspacePanel();
+    }
+
+    if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
+    if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
+    if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
+    if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
+
+    if (typeof showSystemToastNotification === 'function') {
+        showSystemToastNotification("Đã Reset thành công tiến độ Thái Hư, Thương Nhân và Sát Thủ!", "success");
+    }
+}
+
+// Ép ghi đè ra phạm vi toàn cục (window)
+window.executeDailyResetPipeline = executeDailyResetPipeline;
+window.resetDailyRunsOnly = executeDailyResetPipeline;
+
+window.onload = initSystemEngine;
