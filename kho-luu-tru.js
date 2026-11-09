@@ -248,17 +248,41 @@ function resetToHardcodedDefault() {
 }
 
 function resetDailyRunsOnly() {
-    if (confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0? Các ô tích chọn free và báo thất bại sẽ được làm sạch hoàn toàn.")) {
-        saveStateToMemoryCache(); // Chốt sổ snapshot ngày hôm nay vào kho trước khi đưa về 0
+    if (confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0? Các ô tích chọn free, báo thất bại và tiến độ Sát Thủ sẽ được làm sạch hoàn toàn.")) {
+        // 1. Chốt sổ snapshot ngày cũ trước khi xóa
+        if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
+
+        // 2. Quét qua toàn bộ tài khoản để reset
         Object.keys(systemDatabase.members).forEach(id => {
-            systemDatabase.members[id].currentRuns = 0;
-            systemDatabase.members[id].freeRun2 = false;
-            systemDatabase.members[id].freeRun3 = false;
-            systemDatabase.members[id].failures = {};
+            let m = systemDatabase.members[id];
+            if (!m) return;
+
+            // Reset Thái Hư
+            m.currentRuns = 0;
+            m.freeRun2 = false;
+            m.freeRun3 = false;
+            m.failures = {};
+
+            // >>> THÊM: RESET TIẾN ĐỘ VÀ GIỜ SÁT THỦ <<<
+            m.satThuRuns = 0;
+            delete m.satThuCheckTime;
+            delete m.satThuTimestamp;
+            delete m.satThuCompletedTimestamp;
         });
+
+        // 3. Cập nhật lại giao diện Thái Hư
         if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity(); 
         if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout(); 
-        saveStateToMemoryCache();
+        if (typeof renderThaiHuMainView === 'function') renderThaiHuMainView();
+
+        // 4. Cập nhật lại giao diện và Widget Sát Thủ (nếu đang mở tab Sát Thủ)
+        if (typeof renderSatThuTableRows === 'function') renderSatThuTableRows();
+        if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
+
+        // 5. Lưu trạng thái mới vào bộ nhớ
+        if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
+        if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
+        if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
     }
 }
 
