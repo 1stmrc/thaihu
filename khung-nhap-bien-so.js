@@ -1,7 +1,6 @@
 // Tên file: khung-nhap-bien-so.js
-// Chức năng: Ép chia đôi Header 50/50, bảo vệ bộ nhớ bền vững (khóa ưu tiên localStorage), tích hợp nút mũi tên sổ/gập (Collapse/Expand) tối ưu màn hình phụ, nút [Bật Auto-Save] liên kết file trực tiếp, liên kết Reset Ngày và đồng bộ real-time.
+// Chức năng: Ép chia đôi Header 50/50, bảo vệ bộ nhớ bền vững (khóa ưu tiên localStorage), tích hợp nút mũi tên sổ/gập (Collapse/Expand) tối ưu màn hình phụ, nút [Bật Auto-Save] liên kết file trực tiếp, liên kết Reset Ngày toàn diện (Thái Hư + Thương Nhân + Sát Thủ) và chống đá văng tab.
 // Con của file: index.html (Được nạp trực tiếp vào thẻ div #injection-header-container trong index.html).
-// Trạng thái: [ĐÃ NÂNG CẤP TÍNH NĂNG THU GỌN HEADER CHO MÀN HÌNH NHỎ/MÀN HÌNH PHỤ]
 
 /* ==========================================================================
    KHỐI 1: KHỞI TẠO VÀ RENDER HEADER (HỖ TRỢ THU GỌN VÀ BẢO TOÀN DỮ LIỆU)
@@ -26,7 +25,7 @@ function injectHeaderComponent() {
             <div class="flex items-center justify-between pb-1 ${isCollapsed ? '' : 'border-b border-gray-700/60 mb-2'} cursor-pointer" onclick="toggleHeaderCollapseState()" title="Nhấn để Ẩn/Hiện toàn bộ khung cấu hình biến số">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-sliders text-amber-400 text-xs"></i>
-                    <span class="text-gray-300 font-bold text-xs uppercase tracking-wide">CẤU HÌNH BIẾN SỐ & HỆ THỐNG</span>
+                    <span class="text-gray-300 font-bold text-xs uppercase tracking-wide">CẤU HÌNH BIẾN SỐ &amp; HỆ THỐNG</span>
                     <span id="header-mini-status-preview" class="text-[11px] text-gray-400 font-mono ${isCollapsed ? 'inline-block' : 'hidden'}">
                         (Giá NL: <b class="text-yellow-400">${savedMatPrice}</b> | 1K Vàng: <b class="text-green-400">${savedGoldRate}</b> | Vé: <b class="text-red-400">${savedTicketPrice}</b>)
                     </span>
@@ -129,7 +128,6 @@ function toggleHeaderCollapseState() {
         contentWrapper.classList.remove('flex');
     }
 
-    // Cập nhật text & icon
     if (isHidden) {
         toggleBtnText.textContent = "Mở Rộng";
         toggleIcon.className = "fa-solid fa-chevron-down text-cyan-400";
@@ -227,7 +225,6 @@ function syncSavedHeaderDataIntoSystem() {
     }
 }
 
-// LẮNG NGHE SỰ KIỆN LOAD TRANG ĐỂ ÉP PHỤC HỒI DỮ LIỆU CUỐI CÙNG
 window.addEventListener('load', () => {
     setTimeout(syncSavedHeaderDataIntoSystem, 50);
 });
@@ -287,6 +284,64 @@ function handleImportWithLog(event) {
     if (typeof logUserAction === 'function') logUserAction("Đã Nạp File cấu hình thành công");
 }
 
+/* ==========================================================================
+   KHỐI 5: ĐIỀU KHIỂN RESET NGÀY TOÀN DIỆN (CHỐNG VĂNG TAB & RESET SÁT THỦ)
+   ========================================================================== */
+function executeDailyResetPipeline() {
+    if (!confirm("Xác nhận RESET toàn bộ tiến độ ngày hôm nay (Bao gồm Thái Hư, Thương Nhân và Sát Thủ)?")) {
+        return;
+    }
+
+    if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
+
+    if (typeof systemDatabase !== 'undefined' && systemDatabase.members) {
+        Object.keys(systemDatabase.members).forEach(id => {
+            let m = systemDatabase.members[id];
+            if (!m) return;
+
+            // 1. Reset Thái Hư
+            m.currentRuns = 0;
+            m.freeRun2 = false;
+            m.freeRun3 = false;
+            m.failures = {};
+
+            // 2. Reset Thương Nhân
+            m.merchantRuns = 0;
+
+            // 3. Reset Sát Thủ
+            m.satThuRuns = 0;
+            delete m.satThuCheckTime;
+            delete m.satThuTimestamp;
+            delete m.satThuCompletedTimestamp;
+        });
+    }
+
+    // Nhận diện tab hiện tại để render tại chỗ, chống bị đá văng về Thái Hư
+    let satThuView = document.getElementById('tab-content-quan-ly-sat-thu');
+    let isCurrentlyAtSatThu = satThuView && !satThuView.classList.contains('hidden');
+
+    let merchantView = document.getElementById('tab-content-quan-ly-thuong-nhan');
+    let isCurrentlyAtMerchant = merchantView && !merchantView.classList.contains('hidden');
+
+    if (isCurrentlyAtSatThu) {
+        if (typeof renderSatThuTableRows === 'function') renderSatThuTableRows();
+        if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
+    } else if (isCurrentlyAtMerchant) {
+        if (typeof renderMerchantTableRows === 'function') renderMerchantTableRows();
+    } else {
+        if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity();
+        if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout();
+        if (typeof renderThaiHuMainView === 'function') renderThaiHuMainView();
+    }
+
+    if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
+
+    if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
+    if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
+    if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
+}
+
+window.executeDailyResetPipeline = executeDailyResetPipeline;
 window.injectHeaderComponent = injectHeaderComponent;
 window.toggleHeaderCollapseState = toggleHeaderCollapseState;
 window.saveHeaderInputsState = saveHeaderInputsState;
