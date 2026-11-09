@@ -1,5 +1,5 @@
 // Tên file: thanh-dieu-huong-tab.js
-// Chức năng: Điều phối thanh 6 Tabs chính (Thái Hư, Thương Nhân, Sát Thủ, So Sánh Tối Ưu, Quản Lý Đoài, Lịch Sử), đồng bộ dọn sạch màu active và kích hoạt đúng giao diện.
+// Chức năng: Điều phối 6 Tab chính, ẩn sạch toàn bộ popup khi ở Sát Thủ, dọn sạch màu active cũ.
 // Con của file: index.html
 
 const BAT_QUAI_SVG_ICON = `
@@ -14,9 +14,6 @@ const BAT_QUAI_SVG_ICON = `
     <circle cx="50" cy="61" r="3.5" fill="currentColor"/>
 </svg>`;
 
-/* ==========================================================================
-   KHỐI 1: BỘ ĐIỀU PHỐI ĐỔI MÀU SÁNG / TỐI DUY NHẤT 1 TAB CHÍNH
-   ========================================================================== */
 function setActiveMainTabUI(activeKey) {
     const INACTIVE_CLASS = "px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
 
@@ -44,27 +41,44 @@ function setActiveMainTabUI(activeKey) {
             btn.className = (key === activeKey) ? TAB_ACTIVE_STYLES[key] : INACTIVE_CLASS;
         }
     });
+
+    // 1. TỰ ĐỘNG ẨN TẤT CẢ CÁC POPUP / BONG BÓNG KHI VÀO TAB SÁT THỦ
+    let floatingProfits = document.getElementById('floating-bubble-profit-container');
+    let floatingDeo = document.getElementById('floating-bubble-deo-container');
+    
+    // Đóng toàn bộ các popup con nếu đang mở
+    let cardProfit = document.getElementById('floating-profit-card');
+    let cardMerchant = document.getElementById('floating-merchant-card');
+    let cardFailed = document.getElementById('floating-failed-card');
+    let cardChangelog = document.getElementById('floating-changelog-card');
+
+    if (activeKey === 'satthu') {
+        if (floatingProfits) floatingProfits.classList.add('hidden');
+        if (floatingDeo) floatingDeo.classList.add('hidden');
+        if (cardProfit) cardProfit.classList.add('hidden');
+        if (cardMerchant) cardMerchant.classList.add('hidden');
+        if (cardFailed) cardFailed.classList.add('hidden');
+        if (cardChangelog) cardChangelog.classList.add('hidden');
+    } else {
+        if (floatingProfits) floatingProfits.classList.remove('hidden');
+        if (floatingDeo) floatingDeo.classList.remove('hidden');
+    }
 }
 
-/* ==========================================================================
-   KHỐI 2: XỬ LÝ CHUYỂN TAB VÀ KÍCH HOẠT HÀM RENDER TƯƠNG ỨNG
-   ========================================================================== */
 function handleMainTabSwitch(target) {
     setActiveMainTabUI(target);
 
-    // 1. Tự động ẩn khung giao diện Sát Thủ khi chuyển sang các tab khác
+    // Ẩn bảng view Sát Thủ khi sang tab khác
     let satThuView = document.getElementById('tab-content-quan-ly-sat-thu');
     if (satThuView && target !== 'satthu') {
         satThuView.classList.add('hidden');
     }
 
-    // 2. Tự động ẩn khung giao diện Thương Nhân khi không chọn tab merchant
     let merchantView = document.getElementById('tab-content-quan-ly-thuong-nhan');
     if (merchantView && target !== 'merchant') {
         merchantView.classList.add('hidden');
     }
 
-    // 3. Kích hoạt logic từng tab cụ thể
     if (target === 'thaihu') {
         if (typeof switchMainSystemTab === 'function') switchMainSystemTab('thai_hu_main');
     } else if (target === 'merchant') {
@@ -85,9 +99,6 @@ function handleMainTabSwitch(target) {
     }
 }
 
-/* ==========================================================================
-   KHỐI 3: TIÊM THÀNH PHẦN THANH TAB VÀO KHUNG GIAO DIỆN
-   ========================================================================== */
 function injectMainTabsComponent() {
     let container = document.getElementById('injection-main-tabs-container');
     if (!container) return;
@@ -127,12 +138,10 @@ function injectMainTabsComponent() {
     `;
 }
 
-// Gắn toàn cục đảm bảo index.html gọi được
 window.setActiveMainTabUI = setActiveMainTabUI;
 window.handleMainTabSwitch = handleMainTabSwitch;
 window.injectMainTabsComponent = injectMainTabsComponent;
 
-// Tự động vẽ ngay khi file nạp xong nếu container đã có sẵn
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", injectMainTabsComponent);
 } else {
