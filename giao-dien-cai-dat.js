@@ -1,5 +1,5 @@
 // Tên file: giao-dien-cai-dat.js
-// Chức năng: Điều phối Cài Đặt Hệ Thống - Hiển thị mốc lượt, môn phái, màu sắc và đồng bộ dữ liệu Sự kiện với EventManager.
+// Chức năng: Điều phối Cài Đặt Hệ Thống - Mốc lượt, Môn phái, Màu đội hình và Đồng bộ sự kiện với EventManager.
 // Con của file: index.html
 
 let currentActiveSettingsTabId = 'modal-tab-runs';
@@ -23,9 +23,7 @@ function openSettingsModal() {
             picker.innerHTML = dataTeams.map(x => `<option value="${x.id}">${x.name.toUpperCase()}</option>`).join(''); 
         }
 
-        // Đồng bộ dữ liệu Sự Kiện qua EventManager
         syncEventDataFromManager();
-
         switchModalTab('modal-tab-runs'); 
     }, 60);
 }
@@ -52,7 +50,12 @@ function syncEventDataFromManager() {
 
 function renderEventsHistoryUI() {
     let container = document.getElementById('events-history-list');
-    if (!container || typeof EventManager === 'undefined') return;
+    if (!container) return;
+
+    if (typeof EventManager === 'undefined') {
+        container.innerHTML = `<div class="text-gray-500 text-center py-4 italic">Chưa kết nối mô-đun EventManager.</div>`;
+        return;
+    }
 
     let data = EventManager.getData();
     let activeId = data.activeId;
@@ -77,16 +80,16 @@ function renderEventsHistoryUI() {
 
         let statusBadge = '';
         if (isExpired) {
-            statusBadge = '<span class="text-[9px] text-rose-400 bg-rose-500/10 border border-rose-500/30 px-1.5 py-0.5 rounded font-bold">Hết hạn</span>';
+            statusBadge = '<span class="text-[9px] text-rose-400 bg-rose-500/10 border border-rose-500/30 px-1.5 py-0.5 rounded font-bold shrink-0">Hết hạn</span>';
         } else if (isIncoming) {
-            statusBadge = '<span class="text-[9px] text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-1.5 py-0.5 rounded font-bold">Chưa tới</span>';
+            statusBadge = '<span class="text-[9px] text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-1.5 py-0.5 rounded font-bold shrink-0">Chưa tới</span>';
         } else {
-            statusBadge = '<span class="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold animate-pulse">Đang chạy</span>';
+            statusBadge = '<span class="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold shrink-0 animate-pulse">Đang chạy</span>';
         }
 
         return `
             <div class="p-2 rounded-lg border ${isCurrent ? 'bg-amber-500/10 border-amber-500/50' : 'bg-gray-900 border-gray-800'} flex items-center justify-between gap-2 transition">
-                <div class="flex flex-col min-w-0">
+                <div class="flex flex-col min-w-0 flex-1">
                     <div class="font-bold text-gray-200 flex items-center gap-1.5 truncate">
                         <span class="truncate">${ev.name}</span>
                         ${isCurrent ? '<span class="text-[9px] bg-amber-500 text-black px-1.5 py-0.2 rounded font-black shrink-0">ĐANG CHỌN</span>' : ''}
@@ -97,7 +100,7 @@ function renderEventsHistoryUI() {
                     </div>
                 </div>
                 ${!isCurrent ? `
-                    <button onclick="handleSelectHistoricEvent('${ev.id}')" class="shrink-0 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-amber-300 px-2 py-1 rounded border border-gray-700 text-[11px] font-bold transition cursor-pointer">
+                    <button type="button" onclick="handleSelectHistoricEvent('${ev.id}')" class="shrink-0 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-amber-300 px-2.5 py-1 rounded border border-gray-700 text-[11px] font-bold transition cursor-pointer">
                         Chọn dùng
                     </button>
                 ` : ''}
@@ -112,6 +115,7 @@ function handleSelectHistoricEvent(eventId) {
         syncEventDataFromManager();
         if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
         if (typeof updateDeoStatisticsDisplays === 'function') updateDeoStatisticsDisplays();
+        if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout();
     }
 }
 
@@ -121,39 +125,80 @@ function closeSettingsModal() {
 }
 
 function switchModalTab(tabId) {
-    currentActiveSettingsTabId = tabId;
+    let cleanId = tabId.replace('btn-', '').replace('view-', '');
+    currentActiveSettingsTabId = cleanId;
+
     document.querySelectorAll('.modal-tab-panel').forEach(el => el.classList.add('hidden'));
     
-    let activeTab = document.getElementById('view-' + tabId);
-    if (activeTab) activeTab.classList.remove('hidden');
+    let activeView = document.getElementById('view-' + cleanId) || document.getElementById(cleanId);
+    if (activeView) activeView.classList.remove('hidden');
     
     document.querySelectorAll('[id^="btn-modal-tab-"]').forEach(btn => {
         btn.className = "flex-1 py-1.5 text-gray-400 cursor-pointer text-center font-bold text-xs hover:text-amber-300 transition";
     });
     
-    let activeBtn = document.getElementById('btn-' + tabId);
-    if(activeBtn) {
+    let activeBtn = document.getElementById('btn-' + cleanId);
+    if (activeBtn) {
         activeBtn.className = "flex-1 py-1.5 text-amber-400 border-b-2 border-amber-500 cursor-pointer text-center font-bold text-xs";
     }
     
-    if (tabId === 'modal-tab-runs') { renderModalMembersConfigRows(); }
-    if (tabId === 'modal-tab-faction') { 
+    if (cleanId === 'modal-tab-runs') { renderModalMembersConfigRows(); }
+    if (cleanId === 'modal-tab-faction') { 
         if (typeof renderModalFactionConfigRows === 'function') renderModalFactionConfigRows(); 
     }
-    if (tabId === 'modal-tab-colors') { renderModalTeamColorsConfig(); }
-    if (tabId === 'modal-tab-event') { syncEventDataFromManager(); }
+    if (cleanId === 'modal-tab-colors') { renderModalTeamColorsConfig(); }
+    if (cleanId === 'modal-tab-event') { syncEventDataFromManager(); }
 }
 
 function commitModalMaxRunBoundSettings() { 
     let noticeText = "";
 
-    if (currentActiveSettingsTabId === 'modal-tab-runs') {
+    let eventView = document.getElementById('view-modal-tab-event');
+    let isEventTabVisible = eventView && !eventView.classList.contains('hidden');
+
+    if (currentActiveSettingsTabId === 'modal-tab-event' || isEventTabVisible) {
+        let nameEl = document.getElementById('input-event-name-custom');
+        let startEl = document.getElementById('input-event-start-date');
+        let endEl = document.getElementById('input-event-end-date');
+
+        let eventNameVal = nameEl ? nameEl.value.trim() : "";
+        let eventStartVal = startEl ? startEl.value : "";
+        let eventEndVal = endEl ? endEl.value : "";
+
+        if (!eventNameVal) {
+            alert("Vui lòng nhập tên sự kiện!");
+            return;
+        }
+
+        if (typeof EventManager !== 'undefined') {
+            EventManager.saveOrUpdateEvent(eventNameVal, eventStartVal, eventEndVal);
+        }
+
+        localStorage.setItem('EVENT_NAME', eventNameVal);
+        if (eventStartVal) localStorage.setItem('EVENT_START_DATE', eventStartVal);
+        if (eventEndVal) localStorage.setItem('EVENT_END_DATE', eventEndVal);
+
+        if (typeof systemDatabase !== 'undefined') {
+            systemDatabase.eventName = eventNameVal;
+            systemDatabase.eventStartDate = eventStartVal;
+            systemDatabase.eventEndDate = eventEndVal;
+            if (!systemDatabase.eventConfig) systemDatabase.eventConfig = {};
+            systemDatabase.eventConfig.eventName = eventNameVal;
+            systemDatabase.eventConfig.startDate = eventStartVal;
+            systemDatabase.eventConfig.endDate = eventEndVal;
+        }
+
+        renderEventsHistoryUI();
+        let skNameShow = eventNameVal ? `[${eventNameVal}]` : '';
+        noticeText = `Đã cập nhật sự kiện ${skNameShow}: Từ ${eventStartVal || '---'} đến ${eventEndVal || '---'}`;
+    }
+    else if (currentActiveSettingsTabId === 'modal-tab-runs') {
         document.querySelectorAll('.modal-inner-max-run-select').forEach(box => { 
             let mId = box.getAttribute('data-target-mid'), maxVal = parseInt(box.value) || 3; 
             let m = systemDatabase.members[mId];
-            if(m) { 
+            if (m) { 
                 m.maxRuns = maxVal; 
-                if(m.currentRuns > maxVal) m.currentRuns = maxVal; 
+                if (m.currentRuns > maxVal) m.currentRuns = maxVal; 
             } 
         }); 
         noticeText = `Đã lưu cài đặt Mốc Lượt đi cho các tài khoản.`;
@@ -176,44 +221,6 @@ function commitModalMaxRunBoundSettings() {
         }); 
         noticeText = `Đã lưu cấu hình Màu Đội Hình.`;
     }
-    else if (currentActiveSettingsTabId === 'modal-tab-event') {
-        let nameEl = document.getElementById('input-event-name-custom');
-        let startEl = document.getElementById('input-event-start-date');
-        let endEl = document.getElementById('input-event-end-date');
-
-        let eventNameVal = nameEl ? nameEl.value.trim() : "";
-        let eventStartVal = startEl ? startEl.value : "";
-        let eventEndVal = endEl ? endEl.value : "";
-
-        if (!eventNameVal) {
-            alert("Vui lòng nhập tên sự kiện!");
-            return;
-        }
-
-        // Lưu đồng bộ qua EventManager
-        if (typeof EventManager !== 'undefined') {
-            EventManager.saveOrUpdateEvent(eventNameVal, eventStartVal, eventEndVal);
-        }
-
-        // Đồng bộ ngược lại bộ nhớ hệ thống
-        localStorage.setItem('EVENT_NAME', eventNameVal);
-        if (eventStartVal) localStorage.setItem('EVENT_START_DATE', eventStartVal);
-        if (eventEndVal) localStorage.setItem('EVENT_END_DATE', eventEndVal);
-
-        if (typeof systemDatabase !== 'undefined') {
-            systemDatabase.eventName = eventNameVal;
-            systemDatabase.eventStartDate = eventStartVal;
-            systemDatabase.eventEndDate = eventEndVal;
-            if (!systemDatabase.eventConfig) systemDatabase.eventConfig = {};
-            systemDatabase.eventConfig.eventName = eventNameVal;
-            systemDatabase.eventConfig.startDate = eventStartVal;
-            systemDatabase.eventConfig.endDate = eventEndVal;
-        }
-
-        renderEventsHistoryUI();
-        let skNameShow = eventNameVal ? `[${eventNameVal}]` : '';
-        noticeText = `Đã cập nhật sự kiện ${skNameShow}: Từ ${eventStartVal || '---'} đến ${eventEndVal || '---'}`;
-    }
 
     closeSettingsModal(); 
 
@@ -233,7 +240,6 @@ function commitModalMaxRunBoundSettings() {
     }
 }
 
-// BÊN MỐC LƯỢT HIỂN THỊ ĐẦY ĐỦ ĐỊNH DẠNG TÊN GIỐNG BÊN MÔN PHÁI
 function renderModalMembersConfigRows() {
     let picker = document.getElementById('modal-team-filter-picker');
     let targetWrapper = document.getElementById('modal-members-config-scroll-area');
@@ -242,11 +248,11 @@ function renderModalMembersConfigRows() {
     let teamId = picker.value;
     targetWrapper.innerHTML = ""; 
     let team = systemDatabase.teams.find(x => x.id === teamId); 
-    if(!team) return;
+    if (!team) return;
     
     team.memberIds.forEach(mId => { 
         let m = systemDatabase.members[mId]; 
-        if(!m) return; 
+        if (!m) return; 
         
         let fullTitle = (typeof getMemberFullDisplayTitle === 'function') ? getMemberFullDisplayTitle(m, team) : m.name;
 
@@ -256,7 +262,7 @@ function renderModalMembersConfigRows() {
             <div class="truncate font-bold text-gray-200 flex-1 pr-2">
                 <span class="truncate">${fullTitle}</span>
             </div>
-            <select data-target-mid="${m.id}" class="modal-inner-max-run-select bg-gray-800 border border-gray-600 rounded p-1 text-[11px] text-yellow-400 font-bold focus:outline-none shrink-0">
+            <select data-target-mid="${m.id}" class="modal-inner-max-run-select bg-gray-800 border border-gray-600 rounded p-1 text-[11px] text-yellow-400 font-bold focus:outline-none shrink-0 cursor-pointer">
                 <option value="1" ${m.maxRuns === 1 ? 'selected' : ''}>Max 1 Lượt</option>
                 <option value="2" ${m.maxRuns === 2 ? 'selected' : ''}>Max 2 Lượt</option>
                 <option value="3" ${m.maxRuns === 3 ? 'selected' : ''}>Max 3 Lượt</option>
@@ -268,7 +274,7 @@ function renderModalMembersConfigRows() {
 
 function renderModalTeamColorsConfig() {
     let container = document.getElementById('modal-team-colors-config-list'); 
-    if(!container) return;
+    if (!container) return;
     container.innerHTML = "";
     let html = "";
     
@@ -339,4 +345,6 @@ function filterAvailableModalColors() {
     });
 }
 
+window.syncEventDataFromManager = syncEventDataFromManager;
+window.renderEventsHistoryUI = renderEventsHistoryUI;
 window.handleSelectHistoricEvent = handleSelectHistoricEvent;
