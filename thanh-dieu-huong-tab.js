@@ -1,5 +1,5 @@
 // Tên file: thanh-dieu-huong-tab.js
-// Chức năng: Điều phối 6 Tab chính, tự động thêm mũi tên chỉa xuống (▼) khi tab được chọn, đổi icon Sát Thủ tách màu, ẩn sạch popup.
+// Chức năng: Điều phối 6 Tab chính, mũi tên to vàng chuyển động rõ nét, chỉ hiện popup Thống Kê Sát Thủ khi ở tab Sát Thủ.
 // Con của file: index.html
 
 const BAT_QUAI_SVG_ICON = `
@@ -41,21 +41,20 @@ function setActiveMainTabUI(activeKey) {
             let isCurrentActive = (key === activeKey);
             btn.className = isCurrentActive ? TAB_ACTIVE_STYLES[key] : INACTIVE_CLASS;
 
-            // Xóa mũi tên cũ nếu có
             let oldArrow = btn.querySelector('.tab-down-arrow');
             if (oldArrow) oldArrow.remove();
 
-            // Nếu đang active: thêm mũi tên nhỏ chỉa xuống
+            // MŨI TÊN TO, MÀU VÀNG HỔ PHÁCH, NHỊP NHẢY RÕ RÀNG
             if (isCurrentActive) {
                 let arrowSpan = document.createElement('span');
-                arrowSpan.className = "tab-down-arrow ml-0.5 text-[10px] text-white/90 animate-bounce";
-                arrowSpan.innerHTML = '<i class="fa-solid fa-caret-down"></i>';
+                arrowSpan.className = "tab-down-arrow ml-1 text-xs text-amber-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] inline-block transform translate-y-0.5 animate-bounce";
+                arrowSpan.innerHTML = '<i class="fa-solid fa-caret-down text-sm"></i>';
                 btn.appendChild(arrowSpan);
             }
         }
     });
 
-    // Ẩn tất cả các popup nổi khi ở Tab Sát Thủ
+    // ẨN / HIỆN CÁC POPUP THEO TAB
     let floatingProfits = document.getElementById('floating-bubble-profit-container');
     let floatingDeo = document.getElementById('floating-bubble-deo-container');
     let cardProfit = document.getElementById('floating-profit-card');
@@ -70,9 +69,15 @@ function setActiveMainTabUI(activeKey) {
         if (cardMerchant) cardMerchant.classList.add('hidden');
         if (cardFailed) cardFailed.classList.add('hidden');
         if (cardChangelog) cardChangelog.classList.add('hidden');
+        
+        // Hiện popup thống kê sát thủ
+        if (typeof showSatThuStatsPopup === 'function') showSatThuStatsPopup();
     } else {
         if (floatingProfits) floatingProfits.classList.remove('hidden');
         if (floatingDeo) floatingDeo.classList.remove('hidden');
+        
+        // Ẩn popup thống kê sát thủ khi sang các tab khác
+        if (typeof hideSatThuStatsPopup === 'function') hideSatThuStatsPopup();
     }
 }
 
@@ -125,7 +130,7 @@ function injectMainTabsComponent() {
                 <i class="fa-solid fa-coins text-amber-400"></i> Quản Lý Thương Nhân
             </button>
 
-            <!-- 3. SÁT THỦ (Icon màu trắng tinh tách biệt với nền đỏ) -->
+            <!-- 3. SÁT THỦ -->
             <button onclick="handleMainTabSwitch('satthu')" id="btn-main-tab-satthu" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
                 <i class="fa-solid fa-skull text-white drop-shadow"></i> SÁT THỦ
             </button>
