@@ -1,16 +1,9 @@
 // Tên file: kho-luu-tru.js
-// Chức năng: Quản lý bộ nhớ đệm LocalStorage (đã tách biệt Key cho bản V2), bảo toàn mảng Presets, Đội Hình Xếp, lịch sử bấm giờ Thương Nhân, cấu hình giá nhập liệu Header ưu tiên tuyệt đối không nháy số.
-// Con của file: index.html (Được gọi để quản lý xuất nhập dữ liệu và cấu hình hệ thống).
-// Danh sách tính năng của file:
-//    1. Khởi tạo và khôi phục cơ sở dữ liệu runtime hệ thống (Teams, Members, Presets, Lịch sử Đoài, Thống kê bấm giờ Thương Nhân).
-//    2. Đồng bộ các biến số Header từ bộ nhớ ưu tiên (HEADER_*), triệt tiêu hoàn toàn lỗi nháy số cũ khi F5.
-//    3. Lưu mẫu mặc định, xuất file JSON backup và nạp file JSON khôi phục cấu hình.
-//    4. Reset ngày an toàn cho số lượt chạy và trạng thái thất bại.
-// Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - KHÓA MÃ NGUỒN NGÀY 22/08/2026 - KHÔNG TỰ Ý XÓA SỬA]
+// Chức năng: Quản lý bộ nhớ đệm LocalStorage (V2), bảo toàn mảng Presets, Đội Hình Xếp, lịch sử Timer Thương Nhân, cấu hình Header, Reset ngày đồng bộ an toàn cả 3 phân hệ (Thái Hư, Thương Nhân, Sát Thủ) và chống đá văng tab.
+// Con của file: index.html
 
 /* ==========================================================================
    KHỐI 1: KHỞI TẠO VÀ PHỤC HỒI HỆ THỐNG RUNTIME
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 22/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
 function initSystemEngine() {
     let savedData = localStorage.getItem('V2_THAI_HU_UPGRADED_RUNTIME_DB') || localStorage.getItem('V2_THAI_HU_CUSTOM_DEFAULT_TEMPLATE') || localStorage.getItem('V2_THAI_HU_PERSIST_DB');
@@ -27,7 +20,7 @@ function initSystemEngine() {
 
                 // ĐỒNG BỘ VÀ KHÔI PHỤC DỮ LIỆU BẤM GIỜ THƯƠNG NHÂN
                 if (!systemDatabase.merchantTimerDb) {
-                    let rawMerchant = localStorage.getItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1');
+                    let rawMerchant = localStorage.getItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1') || localStorage.getItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V2');
                     if (rawMerchant) {
                         try { systemDatabase.merchantTimerDb = JSON.parse(rawMerchant); } catch(e){}
                     }
@@ -108,12 +101,42 @@ function parseAndLoadFromPayloadTemplate(sourcePayload) {
         let teamObj = { id: teamId, name: t.name, type: 'data', memberIds: [] };
         t.rows.forEach(r => {
             let mId = 'uid_' + Date.now() + Math.floor(Math.random() * 10000);
-            systemDatabase.members[mId] = { id: mId, name: r.acc ? r.acc.trim() : "", maxRuns: 3, currentRuns: 0, originalTeamId: teamId, isEditing: false, freeRun2: false, freeRun3: false, skipStatNL: false, merchantRuns: 0, merchantLocked: false, nganPhieu: 0 };
+            systemDatabase.members[mId] = { 
+                id: mId, 
+                name: r.acc ? r.acc.trim() : "", 
+                maxRuns: 3, 
+                currentRuns: 0, 
+                originalTeamId: teamId, 
+                isEditing: false, 
+                freeRun2: false, 
+                freeRun3: false, 
+                skipStatNL: false, 
+                merchantRuns: 0, 
+                merchantLocked: false, 
+                satThuRuns: 0,
+                satThuLocked: false,
+                nganPhieu: 0 
+            };
             teamObj.memberIds.push(mId);
         });
         while(teamObj.memberIds.length < 8) {
             let mId = 'uid_' + Date.now() + Math.floor(Math.random() * 10000);
-            systemDatabase.members[mId] = { id: mId, name: "", maxRuns: 3, currentRuns: 0, originalTeamId: teamId, isEditing: true, freeRun2: false, freeRun3: false, skipStatNL: false, merchantRuns: 0, merchantLocked: false, nganPhieu: 0 };
+            systemDatabase.members[mId] = { 
+                id: mId, 
+                name: "", 
+                maxRuns: 3, 
+                currentRuns: 0, 
+                originalTeamId: teamId, 
+                isEditing: true, 
+                freeRun2: false, 
+                freeRun3: false, 
+                skipStatNL: false, 
+                merchantRuns: 0, 
+                merchantLocked: false, 
+                satThuRuns: 0,
+                satThuLocked: false,
+                nganPhieu: 0 
+            };
             teamObj.memberIds.push(mId);
         }
         systemDatabase.teams.push(teamObj);
@@ -126,9 +149,7 @@ function parseAndLoadFromPayloadTemplate(sourcePayload) {
 
 /* ==========================================================================
    KHỐI 2: LƯU TRỮ TRẠNG THÁI & MẪU MẶC ĐỊNH
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 22/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
-// HÀM LẤY NGÀY CHUẨN GIỜ VIỆT NAM GMT+7
 function getVietnamCurrentDateString() {
     return new Intl.DateTimeFormat('en-CA', { 
         timeZone: 'Asia/Ho_Chi_Minh', 
@@ -247,13 +268,13 @@ function resetToHardcodedDefault() {
     }
 }
 
-// --- RESET NGÀY: RESET ĐỒNG THỜI CẢ THÁI HƯ & TIẾN ĐỘ SÁT THỦ ---
+// --- RESET NGÀY TOÀN DIỆN: RESET THÁI HƯ + THƯƠNG NHÂN + SÁT THỦ & KHÔNG ĐÁ VĂNG TAB ---
 function resetDailyRunsOnly() {
-    if (confirm("Xác nhận reset toàn bộ số lượt ngày hôm nay về 0? Lịch sử các ngày trước đã được lưu an toàn.")) {
-        // 1. Chốt sổ snapshot trước khi xóa trắng dữ liệu
+    if (confirm("Xác nhận RESET toàn bộ tiến độ ngày hôm nay (Bao gồm Thái Hư, Thương Nhân và Sát Thủ)?")) {
+        // 1. Chốt sổ snapshot trước khi làm sạch
         if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
 
-        // 2. Quét qua toàn bộ danh sách thành viên để xóa lượt
+        // 2. Quét qua toàn bộ danh sách thành viên để xóa sạch lượt
         if (typeof systemDatabase !== 'undefined' && systemDatabase.members) {
             Object.keys(systemDatabase.members).forEach(id => {
                 let m = systemDatabase.members[id];
@@ -265,6 +286,9 @@ function resetDailyRunsOnly() {
                 m.freeRun3 = false;
                 m.failures = {};
 
+                // Reset tiến độ Thương Nhân
+                m.merchantRuns = 0;
+
                 // Reset triệt để tiến độ & mốc giờ Sát Thủ
                 m.satThuRuns = 0;
                 delete m.satThuCheckTime;
@@ -273,26 +297,44 @@ function resetDailyRunsOnly() {
             });
         }
 
-        // 3. Cập nhật lại giao diện Thái Hư & Đội Hình Xếp
-        if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity();
-        if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout();
-        if (typeof renderThaiHuMainView === 'function') renderThaiHuMainView();
-        if (typeof renderActiveWorkspacePanel === 'function') renderActiveWorkspacePanel();
+        // 3. NHẬN DIỆN THÔNG MINH TAB HIỆN TẠI ĐỂ VẼ LẠI - CHỐNG BỊ ĐÁ VĂNG TAB
+        let satThuView = document.getElementById('tab-content-quan-ly-sat-thu');
+        let isCurrentlyAtSatThu = satThuView && !satThuView.classList.contains('hidden');
 
-        // 4. CẬP NHẬT TRỰC TIẾP BẢNG & POPUP SÁT THỦ (NẾU ĐANG MỞ)
-        if (typeof renderSatThuTableRows === 'function') renderSatThuTableRows();
+        let merchantView = document.getElementById('tab-content-quan-ly-thuong-nhan');
+        let isCurrentlyAtMerchant = merchantView && !merchantView.classList.contains('hidden');
+
+        if (isCurrentlyAtSatThu) {
+            // Đang ở tab Sát Thủ: Chỉ render bảng Sát Thủ & Popup Thống Kê
+            if (typeof renderSatThuTableRows === 'function') renderSatThuTableRows();
+            if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
+        } else if (isCurrentlyAtMerchant) {
+            // Đang ở tab Thương Nhân: Chỉ render bảng Thương Nhân
+            if (typeof renderMerchantTableRows === 'function') renderMerchantTableRows();
+        } else {
+            // Chỉ render Thái Hư khi người dùng ĐANG THỰC SỰ Ở TAB THÁI HƯ
+            if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity();
+            if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout();
+            if (typeof renderThaiHuMainView === 'function') renderThaiHuMainView();
+        }
+
+        // Luôn cập nhật Popup Thống Kê Sát Thủ nếu nó đang hiển thị
         if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
 
-        // 5. Lưu trạng thái đã reset vào bộ nhớ & tính toán lại lợi nhuận
+        // 4. Lưu trạng thái đã reset vào bộ nhớ & tính toán lại lợi nhuận
         if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
         if (typeof calculateRealtimeProfits === 'function') calculateRealtimeProfits();
         if (typeof calculateComprehensiveProfitsRealtime === 'function') calculateComprehensiveProfitsRealtime();
     }
 }
 
+// Bổ sung hàm alias để đồng bộ với mọi nơi gọi pipeline reset
+function executeDailyResetPipeline() {
+    resetDailyRunsOnly();
+}
+
 /* ==========================================================================
    KHỐI 3: XUẤT NHẬP FILE CẤU HÌNH HỆ THỐNG (.JSON)
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 22/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
 function exportFullConfigurationState() { 
     saveStateToMemoryCache();
@@ -318,35 +360,34 @@ function importFullConfigurationState(event) {
                 if (!systemDatabase.lineupPresets) systemDatabase.lineupPresets = []; 
                 if (!systemDatabase.currentPresetId) systemDatabase.currentPresetId = "default_blank"; 
                 
-                // ĐỒNG BỘ VÀ KHÔI PHỤC DB TIMER THƯƠNG NHÂN TỪ FILE JSON
-                if (systemDatabase.merchantTimerDb) {
-                    localStorage.setItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1', JSON.stringify(systemDatabase.merchantTimerDb));
-                } else {
-                    systemDatabase.merchantTimerDb = { dailyHistory: {}, totalAllSeconds: 0, totalAllSessions: 0 };
+                if (systemDatabase.merchantTimerDb) { 
+                    localStorage.setItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1', JSON.stringify(systemDatabase.merchantTimerDb)); 
+                } else { 
+                    systemDatabase.merchantTimerDb = { dailyHistory: {}, totalAllSeconds: 0, totalAllSessions: 0 }; 
                 }
 
                 activeTeamId = systemDatabase.teams[0]?.id || ""; 
                 
-                if (systemDatabase.materialPrice !== undefined) {
-                    localStorage.setItem('HEADER_MAT_PRICE', systemDatabase.materialPrice);
-                    let el = document.getElementById('input-material-price');
-                    if (el) el.value = systemDatabase.materialPrice;
-                }
-                if (systemDatabase.goldRate !== undefined) {
-                    localStorage.setItem('HEADER_GOLD_RATE', systemDatabase.goldRate);
-                    let el = document.getElementById('input-gold-rate');
-                    if (el) el.value = systemDatabase.goldRate;
-                }
-                if (systemDatabase.ticketPrice !== undefined) {
-                    localStorage.setItem('HEADER_TICKET_PRICE', systemDatabase.ticketPrice);
-                    let el = document.getElementById('input-ticket-price');
-                    if (el) el.value = systemDatabase.ticketPrice;
-                }
-                if (systemDatabase.refundPrice !== undefined) {
-                    localStorage.setItem('HEADER_REFUND_PRICE', systemDatabase.refundPrice);
-                    let el = document.getElementById('input-refund-price');
-                    if (el) el.value = systemDatabase.refundPrice;
-                }
+                if (systemDatabase.materialPrice !== undefined) { 
+                    localStorage.setItem('HEADER_MAT_PRICE', systemDatabase.materialPrice); 
+                    let el = document.getElementById('input-material-price'); 
+                    if (el) el.value = systemDatabase.materialPrice; 
+                } 
+                if (systemDatabase.goldRate !== undefined) { 
+                    localStorage.setItem('HEADER_GOLD_RATE', systemDatabase.goldRate); 
+                    let el = document.getElementById('input-gold-rate'); 
+                    if (el) el.value = systemDatabase.goldRate; 
+                } 
+                if (systemDatabase.ticketPrice !== undefined) { 
+                    localStorage.setItem('HEADER_TICKET_PRICE', systemDatabase.ticketPrice); 
+                    let el = document.getElementById('input-ticket-price'); 
+                    if (el) el.value = systemDatabase.ticketPrice; 
+                } 
+                if (systemDatabase.refundPrice !== undefined) { 
+                    localStorage.setItem('HEADER_REFUND_PRICE', systemDatabase.refundPrice); 
+                    let el = document.getElementById('input-refund-price'); 
+                    if (el) el.value = systemDatabase.refundPrice; 
+                } 
                 
                 if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity(); 
                 saveStateToMemoryCache(); 
@@ -364,13 +405,6 @@ function importFullConfigurationState(event) {
     reader.readAsText(file); 
 }
 
-window.initSystemEngine = initSystemEngine;
-window.saveStateToMemoryCache = saveStateToMemoryCache;
-window.saveCurrentAsDefaultTemplate = saveCurrentAsDefaultTemplate;
-window.resetToHardcodedDefault = resetToHardcodedDefault;
-window.resetDailyRunsOnly = resetDailyRunsOnly;
-window.exportFullConfigurationState = exportFullConfigurationState;
-window.importFullConfigurationState = importFullConfigurationState;
 // TỰ ĐỘNG CHỐT SỔ KHI CHUYỂN QUA 00:00 GMT+7 HÀ NỘI
 function checkAndAutoSnapshotEndOfDay() {
     if (typeof getVietnamCurrentDateString !== 'function') return;
@@ -384,4 +418,12 @@ function checkAndAutoSnapshotEndOfDay() {
 }
 setInterval(checkAndAutoSnapshotEndOfDay, 30000);
 checkAndAutoSnapshotEndOfDay();
-// Tổng số dòng code trong file này: 235 dòng.
+
+window.initSystemEngine = initSystemEngine;
+window.saveStateToMemoryCache = saveStateToMemoryCache;
+window.saveCurrentAsDefaultTemplate = saveCurrentAsDefaultTemplate;
+window.resetToHardcodedDefault = resetToHardcodedDefault;
+window.resetDailyRunsOnly = resetDailyRunsOnly;
+window.executeDailyResetPipeline = executeDailyResetPipeline;
+window.exportFullConfigurationState = exportFullConfigurationState;
+window.importFullConfigurationState = importFullConfigurationState;
