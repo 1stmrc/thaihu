@@ -1,7 +1,6 @@
 // Tên file: dong-co-bam-gio-thuong-nhan.js
-// Chức năng: Động cơ bấm giờ Thương Nhân - Cơ chế Timestamp Diff siêu nhẹ (không tốn CPU khi ẩn tab), tự động chốt phiên 15p, tính toán chuẩn xác 100% thời gian trải dài thực tế (từ mốc bắt đầu đầu tiên đến mốc kết thúc cuối cùng trong ngày), bộ nhớ độc lập không ghi đè hệ thống, hỗ trợ sửa/xóa phiên và lưu trữ lịch sử dài hạn.
+// Chức năng: Động cơ bấm giờ Thương Nhân - Cơ chế Timestamp Diff siêu nhẹ (không tốn CPU khi ẩn tab), tự động chốt phiên 15p, tính toán chuẩn xác 100% thời gian trải dài thực tế (từ mốc bắt đầu đầu tiên đến mốc kết thúc cuối cùng trong ngày), đồng bộ database xuất/nhập JSON, tôn trọng nút Ẩn Popup trên Header, hỗ trợ sửa/xóa phiên và lưu trữ lịch sử dài hạn.
 // Con của file: index.html (Nạp sau quan-ly-thuong-nhan.js).
-// Trạng thái: [ĐÃ FIX CHUẨN THỜI GIAN TRẢI DÀI - KHÓA MÃ NGUỒN NGÀY 26/08/2026]
 
 const MERCHANT_TIMER_STORAGE_KEY = 'SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V2';
 const MERCHANT_TIMER_RUNNING_KEY = 'SYSTEM_MERCHANT_TIMER_RUNNING_HEARTBEAT_V2';
@@ -16,8 +15,7 @@ let merchantTimerState = {
 };
 
 /* ==========================================================================
-   KHỐI 1: BỘ NHỚ ĐỘC LẬP THEO GIỜ HÀ NỘI (GMT+7)
-   Trạng thái: [ĐÃ KHÓA - KHÔNG SỬA]
+   KHỐI 1: BỘ NHỚ ĐỒNG BỘ THEO GIỜ HÀ NỘI (GMT+7)
    ========================================================================== */
 function getNowGMT7() {
     let now = new Date();
@@ -42,13 +40,22 @@ function getTimeStringGMT7(dateObj = null) {
 }
 
 function getMerchantTimerDatabase() {
+    if (typeof systemDatabase !== 'undefined' && systemDatabase.merchantTimerDb && systemDatabase.merchantTimerDb.dailyHistory) {
+        return systemDatabase.merchantTimerDb;
+    }
     try {
         let raw = localStorage.getItem(MERCHANT_TIMER_STORAGE_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+            let parsed = JSON.parse(raw);
+            if (typeof systemDatabase !== 'undefined') systemDatabase.merchantTimerDb = parsed;
+            return parsed;
+        }
     } catch (e) {
         console.error("Lỗi đọc DB Timer Thương Nhân:", e);
     }
-    return { dailyHistory: {}, totalAllSeconds: 0, totalAllSessions: 0 };
+    let defaultDb = { dailyHistory: {}, totalAllSeconds: 0, totalAllSessions: 0 };
+    if (typeof systemDatabase !== 'undefined') systemDatabase.merchantTimerDb = defaultDb;
+    return defaultDb;
 }
 
 function saveMerchantTimerDatabase(db) {
@@ -57,6 +64,9 @@ function saveMerchantTimerDatabase(db) {
             systemDatabase.merchantTimerDb = db;
         }
         localStorage.setItem(MERCHANT_TIMER_STORAGE_KEY, JSON.stringify(db));
+        if (typeof saveStateToMemoryCache === 'function') {
+            saveStateToMemoryCache();
+        }
     } catch (e) {
         console.error("Lỗi lưu DB Timer Thương Nhân:", e);
     }
@@ -109,7 +119,6 @@ function refreshAccountStatsForToday() {
 
 /* ==========================================================================
    KHỐI 2: ĐỘNG CƠ BẤM GIỜ & TÍNH TOÁN ĐỘ DÀI TRẢI DÀI THỰC TẾ
-   Trạng thái: [ĐÃ FIX - TÍNH CHUẨN XÁC KHOẢNG CÁCH GIỜ BẮT ĐẦU VÀ KẾT THÚC]
    ========================================================================== */
 function formatTimerDigits(totalSecs) {
     let s = Math.max(0, Math.floor(totalSecs || 0));
@@ -127,7 +136,6 @@ function formatDurationReadable(totalSecs) {
     return `${mins} phút`;
 }
 
-// TÍNH TOÁN CHÍNH XÁC KHOẢNG THỜI GIAN TRẢI DÀI DỰA TRÊN 2 MỐC HH:MM:SS
 function calculateSpanSeconds(firstTimeStr, lastTimeStr, fallbackTotalSec = 0) {
     if (!firstTimeStr || !lastTimeStr || firstTimeStr === '--:--' || lastTimeStr === '--:--') {
         return fallbackTotalSec;
@@ -142,7 +150,7 @@ function calculateSpanSeconds(firstTimeStr, lastTimeStr, fallbackTotalSec = 0) {
             if (diff < 0) diff += 86400; // Xử lý nếu chạy qua đêm (00h)
             return Math.max(diff, fallbackTotalSec);
         }
-    } catch(e) {}
+    } catch (e) {}
     return fallbackTotalSec;
 }
 
@@ -207,6 +215,13 @@ function startMerchantMasterTimer() {
     if (merchantTimerState.intervalId) clearInterval(merchantTimerState.intervalId);
 
     merchantTimerState.intervalId = setInterval(() => {
+        // Tự động chuyển ngày mới nếu chạy xuyên qua 00:00 GMT+7
+        let currentDay = getTodayStringGMT7();
+        if (currentDay !== todayStr) {
+            stopMerchantMasterTimer(false);
+            startMerchantMasterTimer();
+            return;
+        }
         if (!document.hidden) {
             catchUpMerchantSessionChunks();
             updateMerchantTimerDisplay();
@@ -281,7 +296,7 @@ function recalculateTodayTotalSeconds() {
     let todayStr = getTodayStringGMT7();
     let db = getMerchantTimerDatabase();
 
-    // TỰ ĐỘNG PHỤC HỒI FIRST START TIME & LAST END TIME NẾU BỊ RỖNG
+    // TỰ ĐỘNG PHỤC HỒI FIRST START TIME & LAST END TIME TỪ MẢNG PHIÊN NẾU BỊ RỖNG
     Object.values(db.dailyHistory || {}).forEach(d => {
         if (d && d.sessions && d.sessions.length > 0) {
             if (!d.firstStartTime || d.firstStartTime === '--:--') {
@@ -330,15 +345,26 @@ function recoverRunningTimerStateOnLoad() {
         if (!saved || !saved.isRunning) return;
 
         let todayStr = getTodayStringGMT7();
-        if (saved.date === todayStr) {
+        if (saved.date === todayStr && saved.sessionStartMs) {
             merchantTimerState.sessionStartTimeStr = saved.sessionStartTimeStr;
             merchantTimerState.sessionStartMs = saved.sessionStartMs;
-            startMerchantMasterTimer();
+            merchantTimerState.isRunning = true;
+
             catchUpMerchantSessionChunks();
+
+            if (merchantTimerState.intervalId) clearInterval(merchantTimerState.intervalId);
+            merchantTimerState.intervalId = setInterval(() => {
+                if (!document.hidden) {
+                    catchUpMerchantSessionChunks();
+                    updateMerchantTimerDisplay();
+                }
+            }, 1000);
+
+            updateMerchantTimerDisplay();
         } else {
             localStorage.removeItem(MERCHANT_TIMER_RUNNING_KEY);
         }
-    } catch(e) {
+    } catch (e) {
         console.warn("Lỗi phục hồi timer:", e);
     }
 }
@@ -360,8 +386,7 @@ function hookThaihuLineupTimerAutoStop() {
 }
 
 /* ==========================================================================
-   KHỐI 3: GIAO DIỆN WIDGET GÓC 7H
-   Trạng thái: [ĐÃ KHÓA - KHÔNG SỬA]
+   KHỐI 3: GIAO DIỆN WIDGET GÓC 7H (TÔN TRỌNG NÚT ẨN TẤT CẢ POPUP)
    ========================================================================== */
 function injectMerchantTimerWidget() {
     let holder = document.getElementById('merchant-bottom-left-timer-widget-zone');
@@ -424,6 +449,12 @@ function syncMerchantTimerWidgetVisibility() {
     let holder = document.getElementById('merchant-bottom-left-timer-widget-zone');
     if (!holder) return;
 
+    // Ẩn ngay nếu người dùng đang bật chế độ Ẩn Tất Cả Popup trên Header
+    if (localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true') {
+        holder.classList.add('hidden');
+        return;
+    }
+
     let btnMerchant = document.getElementById('btn-main-tab-merchant');
     let merchantPanel = document.getElementById('tab-content-quan-ly-thuong-nhan');
 
@@ -439,7 +470,6 @@ function syncMerchantTimerWidgetVisibility() {
 
 /* ==========================================================================
    KHỐI 4: MODAL THỐNG KÊ CHI TIẾT - TÍNH ĐÚNG THỜI GIAN TRẢI DÀI
-   Trạng thái: [ĐÃ FIX TRIỆT ĐỂ - ÁP DỤNG CALCULATESPANSECONDS CHO MỌI NGÀY]
    ========================================================================== */
 function openMerchantPerformanceStatsModal() {
     let existing = document.getElementById('merchant-stats-modal-overlay');
@@ -512,7 +542,7 @@ function openMerchantPerformanceStatsModal() {
         }).join('');
     }
 
-    // 2. TỔNG HỢP CÁC NGÀY TRƯỚC VÀ HÔM NAY (TÍNH ĐÚNG TRẢI DÀI)
+    // 2. TỔNG HỢP CÁC NGÀY TRƯỚC VÀ HÔM NAY
     let summaryRowsHtml = "";
     dates.forEach(dStr => {
         let item = db.dailyHistory[dStr];
@@ -614,7 +644,6 @@ function openMerchantPerformanceStatsModal() {
 
 /* ==========================================================================
    KHỐI 5: CÁC HÀM SỬA / XÓA PHIÊN
-   Trạng thái: [ĐÃ KHÓA - KHÔNG SỬA]
    ========================================================================== */
 function editMerchantSessionPrompt(sessionId, currentMins) {
     let input = prompt(`Nhập số phút thực tế cho phiên này (hiện tại: ${currentMins} phút):`, currentMins);
@@ -660,8 +689,7 @@ function deleteMerchantSessionConfirm(sessionId) {
 }
 
 /* ==========================================================================
-   KHỐI 6: LẮNG NGHE SỰ KIỆN MỞ LẠI TAB
-   Trạng thái: [ĐÃ KHÓA - KHÔNG SỬA]
+   KHỐI 6: LẮNG NGHE SỰ KIỆN MỞ LẠI TAB & ĐÓNG TRANG
    ========================================================================== */
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
@@ -706,5 +734,3 @@ window.openMerchantPerformanceStatsModal = openMerchantPerformanceStatsModal;
 window.editMerchantSessionPrompt = editMerchantSessionPrompt;
 window.deleteMerchantSessionConfirm = deleteMerchantSessionConfirm;
 window.syncMerchantTimerWidgetVisibility = syncMerchantTimerWidgetVisibility;
-
-// Tổng số dòng code trong file này: 425 dòng.
