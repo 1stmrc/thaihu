@@ -1,24 +1,28 @@
 // Tên file: quan-ly-thuong-nhan.js
-// Chức năng: Quản lý Tab Thương Nhân - Quét chuẩn xác toàn bộ 64 acc từ 8 Data Team (chỉ trừ đúng 4 acc khóa để ra 60 acc, không lọc bỏ acc trống tên), tính đủ 18 acc xong = 54 lượt, tích hợp nút gạt [Bỏ Hoàn Vàng] auto bật sẵn (1.2v/lượt) và điều phối hiển thị an toàn khi chuyển Tab.
+// Chức năng: Quản lý Tab Thương Nhân - Quét chuẩn xác toàn bộ 64 acc từ 8 Data Team (chỉ trừ đúng acc khóa để ra 60 acc), tính đủ 18 acc xong = 54 lượt, tích hợp nút gạt [Bỏ Hoàn Vàng] auto bật sẵn (1.2v/lượt), đồng bộ Ngân Phiếu (+1 NP/lượt) và tôn trọng tuyệt đối nút Ẩn Tất Cả Popup trên Header.
 // Con của file: index.html (Nạp qua thẻ script trong khung xương chính).
-// Danh sách tính năng của file:
-//   1. Quét chính xác toàn bộ 8 Data Team (64 slots), trừ đúng tài khoản khóa để luôn đảm bảo đủ 60 acc hoạt động.
-//   2. Hiển thị tách bạch: Số TK đã hoàn thành (3/3), Số TK chưa xong, Tổng lượt thực tế (18 acc x 3 = 54 lượt).
-//   3. Tích hợp nút gạt [Bỏ Hoàn Vàng] (Auto bật sẵn), khi bỏ tích tính đúng 1.2v/lượt.
-//   4. Đọc đầy đủ định dạng tên tài khoản A.[Phái] [Tên TK], +1 tiến độ tự động +1 Ngân Phiếu cho tài khoản.
-//   5. Đồng bộ thanh điều hướng Tab mà không tự ý khóa/đóng popup Thương Nhân & Thất Bại khi ở Thái Hư.
-// Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - KHÓA MÃ NGUỒN NGÀY 22/08/2026 - KHÔNG TỰ Ý XÓA SỬA]
 
 let activeMerchantTeamId = null;
 let editingMerchantMemberId = null;
 let draggedMerchantRowIndex = null;
 let isMerchantTabActive = false;
-let isMerchantExcludeRefund = true; // Mặc định AUTO BẬT SẴN: Không tính tiền vàng hoàn
+let isMerchantExcludeRefund = (typeof isMerchantExcludeRefund !== 'undefined') ? isMerchantExcludeRefund : true;
 
-// --- HÀM ĐIỀU PHỐI HIỂN THỊ AN TOÀN CHO CÁC TAB ---
+// --- HÀM ĐIỀU PHỐI HIỂN THỊ AN TOÀN CHO CÁC TAB (TÔN TRỌNG NÚT ẨN POPUP) ---
 function applyMerchantPopupVisibility() {
     let profitContainer = document.getElementById('floating-bubble-profit-container');
     let deoContainer = document.getElementById('floating-bubble-deo-container');
+    let isAllPopupsHidden = localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true';
+
+    // Nếu người dùng đang bật nút "Ẩn Popup" trên Header -> Khóa ẩn toàn bộ
+    if (isAllPopupsHidden) {
+        if (deoContainer) deoContainer.classList.add('hidden');
+        if (profitContainer) profitContainer.classList.add('hidden');
+        if (typeof applyAllFloatingPopupsVisibility === 'function') {
+            applyAllFloatingPopupsVisibility(true);
+        }
+        return;
+    }
 
     if (isMerchantTabActive) {
         if (deoContainer) deoContainer.classList.add('hidden');
@@ -119,7 +123,8 @@ function renderMerchantCardModal() {
     let totalVnd = goldRateVnd > 0 ? (totalGold / 1000) * goldRateVnd : 0;
 
     let existingCard = document.getElementById('floating-merchant-card');
-    let isHidden = existingCard ? existingCard.classList.contains('hidden') : true;
+    let isAllPopupsHidden = localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true';
+    let isHidden = isAllPopupsHidden ? true : (existingCard ? existingCard.classList.contains('hidden') : true);
 
     holder.innerHTML = `
         <div id="floating-merchant-card" onclick="event.stopPropagation()" class="${isHidden ? 'hidden' : ''} w-[345px] bg-gray-900 border border-amber-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 text-xs">
@@ -206,19 +211,9 @@ function setupGoldRateLiveSync() {
 // --- 1. CHUYỂN TAB THƯƠNG NHÂN ĐỒNG BỘ THANH ĐIỀU HƯỚNG ---
 function switchToMerchantManagementTab() {
     isMerchantTabActive = true;
-    activeTeamId = "merchant_tab_active";
-
-    let btnThaihu = document.getElementById('btn-main-tab-thaihu');
-    let btnMerchant = document.getElementById('btn-main-tab-merchant');
-    let btnOptimize = document.getElementById('btn-main-tab-optimize');
-    let btnDeo = document.getElementById('btn-main-tab-deo');
-    let btnLogs = document.getElementById('btn-main-tab-logs');
-
-    if (btnThaihu) btnThaihu.className = "px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
-    if (btnMerchant) btnMerchant.className = "px-3 py-1.5 rounded-lg text-xs font-black bg-amber-600 text-white shadow border border-amber-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
-    if (btnOptimize) btnOptimize.className = "px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
-    if (btnDeo) btnDeo.className = "px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
-    if (btnLogs) btnLogs.className = "px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
+    if (typeof activeTeamId !== 'undefined') {
+        activeTeamId = "merchant_tab_active";
+    }
 
     let subNavZone = document.getElementById('sub-navbar-container-zone');
     if (subNavZone) subNavZone.classList.add('hidden');
@@ -229,6 +224,9 @@ function switchToMerchantManagementTab() {
     if (merchantPanel) {
         merchantPanel.classList.remove('hidden');
         renderMerchantMainUI();
+    }
+    if (typeof syncMerchantTimerWidgetVisibility === 'function') {
+        syncMerchantTimerWidgetVisibility();
     }
 }
 
@@ -604,13 +602,17 @@ function handleMerchantDrop(e, targetIndex) {
     if (typeof logUserAction === 'function') logUserAction("Đã thay đổi thứ tự vị trí tài khoản Thương Nhân");
 }
 
-if (typeof window.refreshUserInterfaceLayout === 'function') {
+if (typeof window.refreshUserInterfaceLayout === 'function' && !window.refreshUserInterfaceLayout.__merchantHooked) {
     let originalRefreshUI = window.refreshUserInterfaceLayout;
     window.refreshUserInterfaceLayout = function() {
         originalRefreshUI();
         
+        let btnMerchant = document.getElementById('btn-main-tab-merchant');
         let merchantPanel = document.getElementById('tab-content-quan-ly-thuong-nhan');
-        if (isMerchantTabActive && merchantPanel) {
+        let isStillAtMerchant = btnMerchant && btnMerchant.classList.contains('bg-amber-600');
+
+        if ((isMerchantTabActive || isStillAtMerchant) && merchantPanel) {
+            isMerchantTabActive = true;
             let viewport = document.getElementById('active-panel-view-viewport');
             if (viewport) {
                 Array.from(viewport.children).forEach(child => {
@@ -630,6 +632,7 @@ if (typeof window.refreshUserInterfaceLayout === 'function') {
             applyMerchantPopupVisibility();
         }
     };
+    window.refreshUserInterfaceLayout.__merchantHooked = true;
 }
 
 setInterval(() => {
@@ -659,5 +662,3 @@ window.applyMerchantPopupVisibility = applyMerchantPopupVisibility;
 window.renderMerchantCardModal = renderMerchantCardModal;
 window.toggleMerchantExcludeRefundState = toggleMerchantExcludeRefundState;
 window.toggleFloatingMerchantCard = toggleFloatingMerchantCard;
-
-// Tổng số dòng code trong file này: 440 dòng.
