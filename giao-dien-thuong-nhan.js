@@ -1,18 +1,12 @@
-// Tên file: giao-dien-thuong-nhan
+// Tên file: giao-dien-thuong-nhan.js
 // Chức năng: Bộ điều phối popup Thu Nhập Thương Nhân (quét chuẩn 100% 64 acc từ 8 Data Team, trừ đúng acc khóa, có nút gạt [Bỏ Hoàn Vàng] auto bật sẵn, tính 1.2v/lượt) & Quản lý Thất Bại.
 // Con của file: index.html (Được nạp ở cuối cùng trước script.js).
-// Danh sách tính năng của file:
-//   1. Render chuẩn xác modal Thất Bại và popup Thương Nhân vào các card holder cố định trong index.html.
-//   2. Quản lý Modal Cấu hình thất bại từng lượt đi của thành viên Thái Hư.
-//   3. Quét chính xác toàn bộ 8 Data Team (64 slot), trừ đúng 4 acc khóa để ra 60 acc active.
-//   4. Hiển thị tách bạch: Số TK đã hoàn thành (3/3), Số TK chưa xong, Tổng lượt đi thực tế.
-//   5. Tích hợp nút gạt [Bỏ Hoàn Vàng] (Mặc định Auto bật sẵn) và đổi đơn giá vàng hoàn thành 1.2v/lượt khi bỏ tích.
-//   6. Tự động đồng bộ tỷ giá Vàng sang VNĐ theo thời gian thực.
-// Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - KHÓA MÃ NGUỒN NGÀY 22/08/2026 - KHÔNG TỰ Ý XÓA SỬA]
+
+var isMerchantExcludeRefund = (typeof isMerchantExcludeRefund !== 'undefined') ? isMerchantExcludeRefund : true;
+window.tempFailuresState = window.tempFailuresState || {};
 
 /* ==========================================================================
    KHỐI 1: KHỞI TẠO VÀ INJECT CÁC THÀNH PHẦN MODAL THƯƠNG NHÂN & THẤT BẠI
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 22/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
 function injectFailedRunsComponent() {
     try {
@@ -25,14 +19,19 @@ function injectFailedRunsComponent() {
 
 /* ==========================================================================
    KHỐI 2: RENDER MODAL QUẢN LÝ THẤT BẠI ẢI THÁI HƯ
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 22/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
 function renderFailedCardModal() {
     let holder = document.getElementById('injection-failed-card-holder');
     if (!holder) return;
 
+    let wasHidden = true;
+    let existingCard = document.getElementById('floating-failed-card');
+    if (existingCard && !existingCard.classList.contains('hidden')) {
+        wasHidden = false;
+    }
+
     holder.innerHTML = `
-        <div id="floating-failed-card" onclick="event.stopPropagation()" class="hidden w-[345px] bg-gray-900 border border-rose-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 text-xs">
+        <div id="floating-failed-card" onclick="event.stopPropagation()" class="${wasHidden ? 'hidden' : ''} w-[345px] bg-gray-900 border border-rose-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 text-xs">
             <div class="flex items-center justify-between border-b border-gray-800 pb-2">
                 <span class="text-rose-400 font-black uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-triangle-exclamation animate-pulse"></i> Quản Lý Thất Bại Ải Thái Hư
@@ -69,8 +68,104 @@ function renderFailedCardModal() {
 
 /* ==========================================================================
    KHỐI 3: RENDER POPUP THU NHẬP THƯƠNG NHÂN & BẬT TẮT
-   Trạng thái: [ĐÃ CHẠY ỔN ĐỊNH - NGÀY SỬA: 22/08/2026 - KHÔNG ĐƯỢC XÓA SỬA]
    ========================================================================== */
+function renderMerchantCardModal() {
+    let holder = document.getElementById('injection-merchant-card-holder');
+    if (!holder) return;
+
+    let wasHidden = true;
+    let existingCard = document.getElementById('floating-merchant-card');
+    if (existingCard && !existingCard.classList.contains('hidden')) {
+        wasHidden = false;
+    }
+
+    // Quét chuẩn toàn bộ Data Team (bỏ qua acc khóa)
+    let activeAccounts = 0;
+    let lockedAccounts = 0;
+    let completedAccounts = 0;
+    let totalRunsDone = 0;
+
+    if (typeof systemDatabase !== 'undefined' && Array.isArray(systemDatabase.teams) && systemDatabase.members) {
+        let dataTeams = systemDatabase.teams.filter(t => t.type === 'data');
+        dataTeams.forEach(team => {
+            if (!Array.isArray(team.memberIds)) return;
+            team.memberIds.forEach(mId => {
+                let m = systemDatabase.members[mId];
+                if (!m || !m.name) return;
+                if (m.isLocked || m.locked) {
+                    lockedAccounts++;
+                    return;
+                }
+                activeAccounts++;
+                let runs = parseInt(m.merchantRuns) || 0;
+                if (runs >= 3) completedAccounts++;
+                totalRunsDone += runs;
+            });
+        });
+    }
+
+    let uncompletedAccounts = Math.max(0, activeAccounts - completedAccounts);
+    let maxPossibleRuns = activeAccounts * 3;
+
+    // Đơn giá vàng/lượt: Nếu bật [Bỏ Hoàn Vàng] thì tính phần lãi thực tế; bỏ tích thì tính full 1.2v/lượt
+    let goldPerRun = isMerchantExcludeRefund ? 0.8 : 1.2;
+    let totalGoldEarned = totalRunsDone * goldPerRun;
+
+    // Quy đổi VNĐ theo ô 1K Vàng trên Header
+    let goldRateEl = document.getElementById('input-gold-rate');
+    let rawRateStr = goldRateEl ? goldRateEl.value : (localStorage.getItem('HEADER_GOLD_RATE') || "155.000");
+    let vndPer1KGold = parseFloat(String(rawRateStr).replace(/\./g, '').replace(/,/g, '')) || 155000;
+    let totalVndEarned = Math.round((totalGoldEarned / 1000) * vndPer1KGold);
+
+    holder.innerHTML = `
+        <div id="floating-merchant-card" onclick="event.stopPropagation()" class="${wasHidden ? 'hidden' : ''} w-[340px] bg-gray-900 border border-amber-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 text-xs">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+                <span class="text-amber-400 font-black uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-gem text-amber-400"></i> Thu Nhập Thương Nhân
+                </span>
+                <button onclick="toggleFloatingMerchantCard(event)" class="text-gray-400 hover:text-white text-sm font-black cursor-pointer">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-gray-955 p-2.5 rounded-xl border border-gray-800">
+                <div class="flex flex-col">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase">TK Hoạt Động</span>
+                    <span class="text-sm font-black text-white">${activeAccounts} <span class="text-[10px] text-gray-500 font-normal">(Khóa: ${lockedAccounts})</span></span>
+                </div>
+                <div class="flex flex-col text-right">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase">Tổng Lượt Đã Đi</span>
+                    <span class="text-sm font-black text-amber-400">${totalRunsDone} /${maxPossibleRuns}</span>
+                </div>
+                <div class="flex flex-col pt-1 border-t border-gray-800/80">
+                    <span class="text-[10px] text-emerald-400 font-bold">Đã xong (3/3): <b>${completedAccounts}</b></span>
+                </div>
+                <div class="flex flex-col text-right pt-1 border-t border-gray-800/80">
+                    <span class="text-[10px] text-rose-400 font-bold">Chưa xong: <b>${uncompletedAccounts}</b></span>
+                </div>
+            </div>
+
+            <label class="flex items-center justify-between bg-gray-800/80 hover:bg-gray-800 px-3 py-2 rounded-lg border border-gray-700 cursor-pointer select-none">
+                <span class="text-gray-200 font-bold text-[11px]">Bỏ Hoàn Vàng (Tính lãi ròng)</span>
+                <input type="checkbox" ${isMerchantExcludeRefund ? 'checked' : ''} onchange="toggleMerchantExcludeRefundState(this.checked)" class="w-4 h-4 accent-amber-500 cursor-pointer">
+            </label>
+
+            <div class="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3 flex flex-col gap-1">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400 font-bold">Đơn giá mỗi lượt:</span>
+                    <span class="text-amber-300 font-black">${goldPerRun.toFixed(1)} Vàng / lượt</span>
+                </div>
+                <div class="flex justify-between items-center text-sm pt-1 border-t border-amber-500/20">
+                    <span class="text-gray-300 font-bold">Tổng Vàng Thu:</span>
+                    <span class="text-yellow-400 font-black font-mono">+${totalGoldEarned.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} V</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400 font-bold">Quy đổi VNĐ:</span>
+                    <span class="text-emerald-400 font-black font-mono text-sm">≈ ${totalVndEarned.toLocaleString('vi-VN')} đ</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function toggleMerchantExcludeRefundState(isChecked) {
     isMerchantExcludeRefund = isChecked;
     renderMerchantCardModal();
@@ -102,7 +197,14 @@ function toggleFloatingMerchantCard(e) {
         card = document.getElementById('floating-merchant-card');
     }
     if (card) {
-        card.classList.toggle('hidden');
+        let willShow = card.classList.contains('hidden');
+        if (willShow) {
+            renderMerchantCardModal();
+            card = document.getElementById('floating-merchant-card');
+            if (card) card.classList.remove('hidden');
+        } else {
+            card.classList.add('hidden');
+        }
     }
 }
 
@@ -140,8 +242,6 @@ function onFailedTeamChange() {
     onFailedMemberChange();
 }
 
-window.tempFailuresState = window.tempFailuresState || {};
-
 function onFailedMemberChange() {
     if (typeof systemDatabase === 'undefined' || !systemDatabase.members) return;
     let memberPicker = document.getElementById('failed-member-picker');
@@ -155,7 +255,7 @@ function onFailedMemberChange() {
         return;
     }
     
-    twindow.tempFailuresState = m.failures ? JSON.parse(JSON.stringify(m.failures)) : {};
+    window.tempFailuresState = m.failures ? JSON.parse(JSON.stringify(m.failures)) : {};
     renderFailedRunsList(m);
 }
 
@@ -163,25 +263,7 @@ function renderFailedRunsList(m) {
     let area = document.getElementById('failed-runs-list-area');
     if (!area) return;
     
-    let html = `<div class="text-gray-400 font-bold mb-1">Cấu hình lượt đi (Thực tế đã đi: ${m.currentRuns || 0}/${m.maxRuns || 3} lượt):</div>`;
-    let renderedCount = 0;
-    let maxRuns = m.maxRuns || 3;
-
-    for (let runIdx = 1; runIdx <= maxRuns; runIdx++) {
-        if (runIdx > (m.currentRuns || 0)) continue;
-        
-        renderedCount++;
-        let currentFailure = window.tempFailuresState[runIdx];
-        let statusText = "Thành công";
-        let selectVal = "success";
-        
-        if (currentFailure) {
-            if (currentFailure.type === 'zero') {
-                statusText = "Thất bại (0 NL)";
-                selectVal = "zero";
-            } else if (currentFailure.type === 'half') {
-                let halfNl = runIdx === 1 ? 12 : 24;
-                statusText = `Thất bại (Nửa NL: ${halfNl} NL)`;
+    let html = `<div class="text-gray-400 font-bold mb-1">Cấu hình lượt đi (Thực tế đã đi: ${m.currentRuns || 0}/${m.maxRuns \vert{}\vert{} 3} lượt):</div>`; let renderedCount = 0; let maxRuns = m.maxRuns \vert{}\vert{} 3;  for (let runIdx = 1; runIdx <= maxRuns; runIdx++) { if (runIdx > (m.currentRuns \vert{}\vert{} 0)) continue;  renderedCount++; let currentFailure = window.tempFailuresState[runIdx]; let statusText = "Thành công"; let selectVal = "success";  if (currentFailure) { if (currentFailure.type === 'zero') { statusText = "Thất bại (0 NL)"; selectVal = "zero"; } else if (currentFailure.type === 'half') { let halfNl = runIdx === 1 ? 12 : 24; statusText = `Thất bại (Nửa NL: ${halfNl} NL)`;
                 selectVal = "half";
             }
         }
@@ -198,8 +280,7 @@ function renderFailedRunsList(m) {
                 </div>
                 <select onchange="updateTempFailureRunState(${runIdx}, this.value)" class="w-full bg-gray-800 border border-gray-700 rounded p-1 text-[11px] text-white focus:outline-none font-semibold mt-1">
                     ${optionSuccess}
-                    ${optionZero}
-                    ${optionHalf}
+                    ${optionZero}${optionHalf}
                 </select>
             </div>
         `;
@@ -282,6 +363,9 @@ setInterval(() => {
     }
 }, 300);
 
+window.injectFailedRunsComponent = injectFailedRunsComponent;
+window.renderFailedCardModal = renderFailedCardModal;
+window.renderMerchantCardModal = renderMerchantCardModal;
 window.toggleFloatingFailedCard = toggleFloatingFailedCard;
 window.toggleFloatingMerchantCard = toggleFloatingMerchantCard;
 window.toggleMerchantExcludeRefundState = toggleMerchantExcludeRefundState;
@@ -290,5 +374,3 @@ window.onFailedMemberChange = onFailedMemberChange;
 window.updateTempFailureRunState = updateTempFailureRunState;
 window.clearAllMemberFailures = clearAllMemberFailures;
 window.saveFailedRunsConfiguration = saveFailedRunsConfiguration;
-
-// Tổng số dòng code trong file này: 240 dòng.
