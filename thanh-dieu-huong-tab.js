@@ -1,5 +1,5 @@
 // Tên file: thanh-dieu-huong-tab.js
-// Chức năng: Điều phối 6 Tab chính, mũi tên to vàng chuyển động rõ nét, chỉ hiện popup Thống Kê Sát Thủ khi ở tab Sát Thủ.
+// Chức năng: Điều phối 6 Tab chính, mũi tên to vàng chuyển động rõ nét, chỉ hiện popup Thống Kê Sát Thủ khi ở tab Sát Thủ và tôn trọng trạng thái nút Ẩn Tất Cả Popup trên Header.
 // Con của file: index.html
 
 const BAT_QUAI_SVG_ICON = `
@@ -54,7 +54,9 @@ function setActiveMainTabUI(activeKey) {
         }
     });
 
-    // ẨN / HIỆN CÁC POPUP THEO TAB
+    // ẨN / HIỆN CÁC POPUP THEO TAB (TÔN TRỌNG NÚT ẨN TẤT CẢ POPUP TRÊN HEADER)
+    let isAllPopupsHidden = localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true';
+
     let floatingProfits = document.getElementById('floating-bubble-profit-container');
     let floatingDeo = document.getElementById('floating-bubble-deo-container');
     let cardProfit = document.getElementById('floating-profit-card');
@@ -62,22 +64,31 @@ function setActiveMainTabUI(activeKey) {
     let cardFailed = document.getElementById('floating-failed-card');
     let cardChangelog = document.getElementById('floating-changelog-card');
 
-    if (activeKey === 'satthu') {
+    if (activeKey === 'satthu' || isAllPopupsHidden) {
         if (floatingProfits) floatingProfits.classList.add('hidden');
         if (floatingDeo) floatingDeo.classList.add('hidden');
         if (cardProfit) cardProfit.classList.add('hidden');
         if (cardMerchant) cardMerchant.classList.add('hidden');
         if (cardFailed) cardFailed.classList.add('hidden');
         if (cardChangelog) cardChangelog.classList.add('hidden');
-        
-        // Hiện popup thống kê sát thủ
-        if (typeof showSatThuStatsPopup === 'function') showSatThuStatsPopup();
     } else {
         if (floatingProfits) floatingProfits.classList.remove('hidden');
         if (floatingDeo) floatingDeo.classList.remove('hidden');
-        
-        // Ẩn popup thống kê sát thủ khi sang các tab khác
+    }
+
+    // Điều phối riêng popup Thống Kê Sát Thủ
+    if (activeKey === 'satthu' && !isAllPopupsHidden) {
+        if (typeof showSatThuStatsPopup === 'function') showSatThuStatsPopup();
+    } else {
         if (typeof hideSatThuStatsPopup === 'function') hideSatThuStatsPopup();
+    }
+
+    // Đồng bộ lại trạng thái ẩn/hiện toàn cục từ Header & Timer Thương Nhân
+    if (typeof applyAllFloatingPopupsVisibility === 'function') {
+        applyAllFloatingPopupsVisibility(isAllPopupsHidden);
+    }
+    if (typeof syncMerchantTimerWidgetVisibility === 'function') {
+        syncMerchantTimerWidgetVisibility();
     }
 }
 
@@ -111,6 +122,12 @@ function handleMainTabSwitch(target) {
         if (typeof switchToDeoManagementTab === 'function') switchToDeoManagementTab();
     } else if (target === 'logs') {
         if (typeof switchToActivityLogTab === 'function') switchToActivityLogTab();
+    }
+
+    // Khóa lại trạng thái ẩn popup sau khi các hàm render tab con chạy xong
+    let isAllPopupsHidden = localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true';
+    if (typeof applyAllFloatingPopupsVisibility === 'function') {
+        applyAllFloatingPopupsVisibility(isAllPopupsHidden);
     }
 }
 
