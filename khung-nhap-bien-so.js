@@ -153,7 +153,6 @@ function toggleHeaderCollapseState() {
 }
 
 function applyAllFloatingPopupsVisibility(shouldHide) {
-    // Danh sách toàn bộ các cụm bong bóng, card holder popup và thanh bấm giờ nổi ở 2 góc dưới
     const targetIds = [
         'floating-bubble-deo-container',
         'floating-bubble-profit-container',
@@ -169,21 +168,22 @@ function applyAllFloatingPopupsVisibility(shouldHide) {
 
     targetIds.forEach(id => {
         let el = document.getElementById(id);
-        if (el) {
-            if (shouldHide) {
+        if (!el) return;
+        if (shouldHide) {
+            if (el.style.display !== 'none') {
                 el.style.setProperty('display', 'none', 'important');
-            } else {
+            }
+        } else {
+            if (el.style.display === 'none') {
                 el.style.removeProperty('display');
             }
         }
     });
 
-    // Đồng bộ lại widget bấm giờ Thương Nhân khi bật lại popup
     if (!shouldHide && typeof syncMerchantTimerWidgetVisibility === 'function') {
         syncMerchantTimerWidgetVisibility();
     }
 
-    // Cập nhật giao diện nút bấm trên Header
     let btn = document.getElementById('btn-toggle-all-popups');
     let icon = document.getElementById('toggle-all-popups-icon');
     let text = document.getElementById('toggle-all-popups-text');
@@ -207,22 +207,6 @@ function toggleAllFloatingPopups() {
     localStorage.setItem('HIDE_ALL_FLOATING_POPUPS', nextState ? 'true' : 'false');
     applyAllFloatingPopupsVisibility(nextState);
 }
-
-// Bộ giám sát tự động giữ trạng thái ẩn nếu các file khác tự động bật lại popup
-const floatingPopupGuardObserver = new MutationObserver(() => {
-    if (localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true') {
-        applyAllFloatingPopupsVisibility(true);
-    }
-});
-
-window.addEventListener('DOMContentLoaded', () => {
-    if (document.body) {
-        floatingPopupGuardObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-    }
-    if (localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true') {
-        applyAllFloatingPopupsVisibility(true);
-    }
-});
 
 /* ==========================================================================
    KHỐI 3: TỰ ĐỘNG BẮT SỰ KIỆN VÀ LƯU VÀO LOCALSTORAGE
