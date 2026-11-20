@@ -1,5 +1,5 @@
 // Tên file: dong-co-bam-gio-thuong-nhan.js
-// Chức năng: Động cơ bấm giờ Thương Nhân - Cơ chế Timestamp Diff siêu nhẹ (không tốn CPU khi ẩn tab), tự động chốt phiên 15p, tính toán chuẩn xác 100% thời gian trải dài thực tế (từ mốc bắt đầu đầu tiên đến mốc kết thúc cuối cùng trong ngày), đồng bộ database xuất/nhập JSON, tôn trọng nút Ẩn Popup trên Header, hỗ trợ sửa/xóa phiên và lưu trữ lịch sử dài hạn.
+// Chức năng: Động cơ bấm giờ Thương Nhân - Cơ chế Timestamp Diff siêu nhẹ, tự động chốt phiên 15p (có chốt chặn chống lặp vô tận), tính thời gian trải dài thực tế, đồng bộ database JSON và tôn trọng nút Ẩn Tất Cả Popup trên Header.
 // Con của file: index.html (Nạp sau quan-ly-thuong-nhan.js).
 
 const MERCHANT_TIMER_STORAGE_KEY = 'SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V2';
@@ -64,9 +64,6 @@ function saveMerchantTimerDatabase(db) {
             systemDatabase.merchantTimerDb = db;
         }
         localStorage.setItem(MERCHANT_TIMER_STORAGE_KEY, JSON.stringify(db));
-        if (typeof saveStateToMemoryCache === 'function') {
-            saveStateToMemoryCache();
-        }
     } catch (e) {
         console.error("Lỗi lưu DB Timer Thương Nhân:", e);
     }
@@ -147,7 +144,7 @@ function calculateSpanSeconds(firstTimeStr, lastTimeStr, fallbackTotalSec = 0) {
             let s1 = (p1[0] * 3600) + (p1[1] * 60) + (p1[2] || 0);
             let s2 = (p2[0] * 3600) + (p2[1] * 60) + (p2[2] || 0);
             let diff = s2 - s1;
-            if (diff < 0) diff += 86400; // Xử lý nếu chạy qua đêm (00h)
+            if (diff < 0) diff += 86400;
             return Math.max(diff, fallbackTotalSec);
         }
     } catch (e) {}
@@ -157,10 +154,23 @@ function calculateSpanSeconds(firstTimeStr, lastTimeStr, fallbackTotalSec = 0) {
 function catchUpMerchantSessionChunks() {
     if (!merchantTimerState.isRunning || !merchantTimerState.sessionStartMs) return;
 
+    let startMs = Number(merchantTimerState.sessionStartMs);
     let nowMs = Date.now();
-    let elapsedSec = Math.floor((nowMs - merchantTimerState.sessionStartMs) / 1000);
 
-    while (elapsedSec >= merchantTimerState.chunkIntervalSec) {
+    // Chặn đứng nếu timestamp lỗi hoặc lệch quá 24 tiếng
+    if (isNaN(startMs) || startMs <= 0 || (nowMs - startMs) > 86400000) {
+        merchantTimerState.isRunning = false;
+        merchantTimerState.sessionStartMs = null;
+        merchantTimerState.sessionStartTimeStr = null;
+        localStorage.removeItem(MERCHANT_TIMER_RUNNING_KEY);
+        return;
+    }
+
+    let elapsedSec = Math.floor((nowMs - startMs) / 1000);
+    let loopGuard = 0;
+
+    while (elapsedSec >= merchantTimerState.chunkIntervalSec && loopGuard < 48) {
+        loopGuard++;
         let chunkEndMs = merchantTimerState.sessionStartMs + (merchantTimerState.chunkIntervalSec * 1000);
         let chunkStartTimeStr = merchantTimerState.sessionStartTimeStr;
         let chunkEndTimeStr = getTimeStringGMT7(new Date(chunkEndMs));
@@ -215,7 +225,6 @@ function startMerchantMasterTimer() {
     if (merchantTimerState.intervalId) clearInterval(merchantTimerState.intervalId);
 
     merchantTimerState.intervalId = setInterval(() => {
-        // Tự động chuyển ngày mới nếu chạy xuyên qua 00:00 GMT+7
         let currentDay = getTodayStringGMT7();
         if (currentDay !== todayStr) {
             stopMerchantMasterTimer(false);
@@ -287,6 +296,7 @@ function stopMerchantMasterTimer(isManual = false) {
     recalculateTodayTotalSeconds();
     updateMerchantTimerDisplay();
 
+    if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
     if (typeof logUserAction === 'function') {
         logUserAction(`Đã dừng bấm giờ Thương Nhân. Tổng thời gian hôm nay: ${formatTimerDigits(merchantTimerState.accumulatedSecondsToday)}`);
     }
@@ -296,7 +306,6 @@ function recalculateTodayTotalSeconds() {
     let todayStr = getTodayStringGMT7();
     let db = getMerchantTimerDatabase();
 
-    // TỰ ĐỘNG PHỤC HỒI FIRST START TIME & LAST END TIME TỪ MẢNG PHIÊN NẾU BỊ RỖNG
     Object.values(db.dailyHistory || {}).forEach(d => {
         if (d && d.sessions && d.sessions.length > 0) {
             if (!d.firstStartTime || d.firstStartTime === '--:--') {
@@ -345,9 +354,10 @@ function recoverRunningTimerStateOnLoad() {
         if (!saved || !saved.isRunning) return;
 
         let todayStr = getTodayStringGMT7();
-        if (saved.date === todayStr && saved.sessionStartMs) {
+        let startMs = Number(saved.sessionStartMs);
+        if (saved.date === todayStr && !isNaN(startMs) && startMs > 0 && (Date.now() - startMs) < 86400000) {
             merchantTimerState.sessionStartTimeStr = saved.sessionStartTimeStr;
-            merchantTimerState.sessionStartMs = saved.sessionStartMs;
+            merchantTimerState.sessionStartMs = startMs;
             merchantTimerState.isRunning = true;
 
             catchUpMerchantSessionChunks();
@@ -365,7 +375,7 @@ function recoverRunningTimerStateOnLoad() {
             localStorage.removeItem(MERCHANT_TIMER_RUNNING_KEY);
         }
     } catch (e) {
-        console.warn("Lỗi phục hồi timer:", e);
+        localStorage.removeItem(MERCHANT_TIMER_RUNNING_KEY);
     }
 }
 
@@ -449,7 +459,6 @@ function syncMerchantTimerWidgetVisibility() {
     let holder = document.getElementById('merchant-bottom-left-timer-widget-zone');
     if (!holder) return;
 
-    // Ẩn ngay nếu người dùng đang bật chế độ Ẩn Tất Cả Popup trên Header
     if (localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true') {
         holder.classList.add('hidden');
         return;
@@ -495,7 +504,6 @@ function openMerchantPerformanceStatsModal() {
     let totalDays = dates.length || 1;
     let avgDailySecs = totalDays > 0 ? Math.round((db.totalAllSeconds || 0) / totalDays) : 0;
 
-    // TÍNH CHUẨN THỜI GIAN TRẢI DÀI HÔM NAY
     let currentOrLastEndToday = merchantTimerState.isRunning ? getTimeStringGMT7() : (todayData.lastEndTime || todayData.firstStartTime);
     let spanSecondsToday = calculateSpanSeconds(todayData.firstStartTime, currentOrLastEndToday, todayData.totalSeconds);
 
@@ -514,7 +522,6 @@ function openMerchantPerformanceStatsModal() {
         compareYesterdayBadge = `<span class="bg-gray-800 text-gray-500 px-2 py-0.5 rounded text-[10px]">Chưa có dữ liệu so sánh</span>`;
     }
 
-    // 1. DANH SÁCH CHI TIẾT TỪNG PHIÊN HÔM NAY
     let todaySessionsHtml = "";
     if (!todayData.sessions || todayData.sessions.length === 0) {
         todaySessionsHtml = `<div class="text-gray-500 italic text-center py-2 text-[11px]">Hôm nay chưa chốt phiên nào.</div>`;
@@ -542,7 +549,6 @@ function openMerchantPerformanceStatsModal() {
         }).join('');
     }
 
-    // 2. TỔNG HỢP CÁC NGÀY TRƯỚC VÀ HÔM NAY
     let summaryRowsHtml = "";
     dates.forEach(dStr => {
         let item = db.dailyHistory[dStr];
