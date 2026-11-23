@@ -115,7 +115,7 @@ function renderMerchantCardModal() {
         totalRuns += runs;
     });
 
-    let directGold = isMerchantExcludeRefund ? 0 : (totalRuns * 1.2);
+    let directGold = window.isMerchantExcludeRefund ? 0 : (totalRuns * 1.2);
     let totalMaterials = isEventMode ? (totalRuns * 8) : 0;
     let materialGold = totalMaterials * matPrice;
     let totalGold = directGold + materialGold;
@@ -127,59 +127,59 @@ function renderMerchantCardModal() {
     let isHidden = isAllPopupsHidden ? true : (existingCard ? existingCard.classList.contains('hidden') : true);
 
     holder.innerHTML = `
-        <div id="floating-merchant-card" onclick="event.stopPropagation()" class="${isHidden ? 'hidden' : ''} w-[345px] bg-gray-900 border border-amber-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 text-xs">
-            <div class="flex items-center justify-between border-b border-gray-800 pb-2">
-                <span class="text-amber-400 font-black uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="fa-solid fa-gem animate-pulse"></i> Thu Nhập Thương Nhân
-                </span>
-                <div class="flex items-center gap-2">
-                    <label class="flex items-center gap-1 cursor-pointer bg-gray-955 px-2 py-0.5 rounded border border-cyan-500/40 select-none" title="Không tính tiền vàng hoàn thương nhân">
-                        <input id="chk-merchant-exclude-refund" type="checkbox" ${isMerchantExcludeRefund ? 'checked' : ''} onchange="toggleMerchantExcludeRefundState(this.checked)" class="accent-cyan-400 cursor-pointer w-3 h-3">
-                        <span class="text-[10px] font-bold text-cyan-300">Bỏ Hoàn</span>
-                    </label>
-                    <button onclick="toggleFloatingMerchantCard(event)" class="text-gray-400 hover:text-white text-sm font-black cursor-pointer">&times;</button>
-                </div>
-            </div>
+        &lt;div id="floating-merchant-card" onclick="event.stopPropagation()" class="${isHidden ? 'hidden' : ''} w-[345px] bg-gray-900 border border-amber-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 text-xs"&gt;
+            &lt;div class="flex items-center justify-between border-b border-gray-800 pb-2"&gt;
+                &lt;span class="text-amber-400 font-black uppercase tracking-wider flex items-center gap-1.5"&gt;
+                    &lt;i class="fa-solid fa-gem animate-pulse"&gt;&lt;/i&gt; Thu Nhập Thương Nhân
+                &lt;/span&gt;
+                &lt;div class="flex items-center gap-2"&gt;
+                    &lt;label class="flex items-center gap-1 cursor-pointer bg-gray-955 px-2 py-0.5 rounded border border-cyan-500/40 select-none" title="Không tính tiền vàng hoàn thương nhân"&gt;
+                        &lt;input id="chk-merchant-exclude-refund" type="checkbox" ${window.isMerchantExcludeRefund ? 'checked' : ''} onchange="toggleMerchantExcludeRefundState(this.checked)" class="accent-cyan-400 cursor-pointer w-3 h-3"&gt;
+                        &lt;span class="text-[10px] font-bold text-cyan-300"&gt;Bỏ Hoàn&lt;/span&gt;
+                    &lt;/label&gt;
+                    &lt;button onclick="toggleFloatingMerchantCard(event)" class="text-gray-400 hover:text-white text-sm font-black cursor-pointer"&gt;&times;&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
             
-            <div class="flex flex-col gap-2 text-gray-300 font-semibold my-1 font-mono text-[11px]">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-400 font-sans">Số TK đã hoàn thành (3/3):</span>
-                    <strong class="text-emerald-400 text-xs font-black">${completedAccounts} / ${totalActiveAccounts} acc</strong>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-400 font-sans">Số TK chưa hoàn thành:</span>
-                    <strong class="text-cyan-400 text-xs font-black">${unfinishedAccounts} acc</strong>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-400 font-sans">Tổng trận thực tế đã đi:</span>
-                    <strong class="text-yellow-300 text-xs font-black">${totalRuns} lượt</strong>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-400 font-sans">Vàng Thương Nhân (${isMerchantExcludeRefund ? 'Đã Bỏ Hoàn' : '1.2v/lượt'}):</span>
-                    <strong class="text-amber-400 text-xs font-bold">+${directGold.toFixed(2)}v</strong>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-400 font-sans">Nguyên liệu ${isEventMode ? '(+8NL/lượt)' : '(Chưa bật SK)'}:</span>
-                    <strong class="text-amber-400 text-xs font-bold">${totalMaterials.toLocaleString('vi-VN')} NL ${isEventMode ? `(+${materialGold.toFixed(2)}v)` : '(+0.00v)'}</strong>
-                </div>
-            </div>
+            &lt;div class="flex flex-col gap-2 text-gray-300 font-semibold my-1 font-mono text-[11px]"&gt;
+                &lt;div class="flex justify-between items-center"&gt;
+                    &lt;span class="text-gray-400 font-sans"&gt;Số TK đã hoàn thành (3/3):&lt;/span&gt;
+                    &lt;strong class="text-emerald-400 text-xs font-black"&gt;${completedAccounts} / ${totalActiveAccounts} acc&lt;/strong&gt;
+                &lt;/div&gt;
+                &lt;div class="flex justify-between items-center"&gt;
+                    &lt;span class="text-gray-400 font-sans"&gt;Số TK chưa hoàn thành:&lt;/span&gt;
+                    &lt;strong class="text-cyan-400 text-xs font-black"&gt;${unfinishedAccounts} acc&lt;/strong&gt;
+                &lt;/div&gt;
+                &lt;div class="flex justify-between items-center"&gt;
+                    &lt;span class="text-gray-400 font-sans"&gt;Tổng trận thực tế đã đi:&lt;/span&gt;
+                    &lt;strong class="text-yellow-300 text-xs font-black"&gt;${totalRuns} lượt&lt;/strong&gt;
+                &lt;/div&gt;
+                &lt;div class="flex justify-between items-center"&gt;
+                    &lt;span class="text-gray-400 font-sans"&gt;Vàng Thương Nhân (${window.isMerchantExcludeRefund ? 'Đã Bỏ Hoàn' : '1.2v/lượt'}):&lt;/span&gt;
+                    &lt;strong class="text-amber-400 text-xs font-bold"&gt;+${directGold.toFixed(2)}v&lt;/strong&gt;
+                &lt;/div&gt;
+                &lt;div class="flex justify-between items-center"&gt;
+                    &lt;span class="text-gray-400 font-sans"&gt;Nguyên liệu ${isEventMode ? '(+8NL/lượt)' : '(Chưa bật SK)'}:&lt;/span&gt;
+                    &lt;strong class="text-amber-400 text-xs font-bold"&gt;${totalMaterials.toLocaleString('vi-VN')} NL ${isEventMode ? `(+${materialGold.toFixed(2)}v)` : '(+0.00v)'}&lt;/strong&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
             
-            <div class="w-full h-px bg-gray-800"></div>
+            &lt;div class="w-full h-px bg-gray-800"&gt;&lt;/div&gt;
             
-            <div class="bg-gray-955 border border-gray-800 rounded-xl p-3 text-center flex flex-col items-center justify-center font-mono">
-                <div class="text-emerald-400 font-black text-xl">
+            &lt;div class="bg-gray-955 border border-gray-800 rounded-xl p-3 text-center flex flex-col items-center justify-center font-mono"&gt;
+                &lt;div class="text-emerald-400 font-black text-xl"&gt;
                     +${totalGold.toFixed(2)} Vàng
-                </div>
-                <div class="text-gray-400 text-[11px] font-bold mt-0.5 font-sans">
+                &lt;/div&gt;
+                &lt;div class="text-gray-400 text-[11px] font-bold mt-0.5 font-sans"&gt;
                     ~ ${Math.round(totalVnd).toLocaleString('vi-VN')} VNĐ
-                </div>
-            </div>
-        </div>
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
     `;
 }
 
 function toggleMerchantExcludeRefundState(isChecked) {
-    isMerchantExcludeRefund = isChecked;
+    window.isMerchantExcludeRefund = isChecked;
     renderMerchantCardModal();
     if (typeof calculateComprehensiveProfitsRealtime === 'function') {
         calculateComprehensiveProfitsRealtime();
@@ -244,29 +244,29 @@ function initMerchantViewport() {
         merchantPanel.className = "w-full h-full flex flex-col gap-3 text-gray-200";
         
         merchantPanel.innerHTML = `
-            <div class="flex items-center justify-between gap-2 pb-2 border-b border-gray-700/70">
-                <div class="flex-1 overflow-x-auto no-scrollbar">
-                    <div class="flex items-center gap-1.5 min-w-max" id="merchant-sub-tabs-holder"></div>
-                </div>
-            </div>
+            &lt;div class="flex items-center justify-between gap-2 pb-2 border-b border-gray-700/70"&gt;
+                &lt;div class="flex-1 overflow-x-auto no-scrollbar"&gt;
+                    &lt;div class="flex items-center gap-1.5 min-w-max" id="merchant-sub-tabs-holder"&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
 
-            <div class="flex-1 overflow-hidden bg-gray-900/60 rounded-xl border border-gray-800 p-1.5">
-                <table class="w-full text-left text-xs border-collapse table-fixed">
-                    <thead>
-                        <tr class="text-gray-400 border-b border-gray-800 pb-2 uppercase text-[11px] font-bold">
-                            <th class="p-2 w-8 text-center">KÉO</th>
-                            <th class="p-2 w-8 text-center">STT</th>
-                            <th class="p-2 w-[250px]">TÊN TÀI KHOẢN</th>
-                            <th class="p-2 w-16 text-center">CHECK</th>
-                            <th class="p-2 text-center w-[220px]">TIẾN ĐỘ THƯƠNG NHÂN</th>
-                            <th class="p-2 w-12 text-center">KHÓA</th>
-                            <th class="p-2 w-12 text-center">COPY</th>
-                            <th class="p-2 w-28 text-center">CHUYỂN NHÓM</th>
-                        </tr>
-                    </thead>
-                    <tbody id="merchant-members-table-body"></tbody>
-                </table>
-            </div>
+            &lt;div class="flex-1 overflow-hidden bg-gray-900/60 rounded-xl border border-gray-800 p-1.5"&gt;
+                &lt;table class="w-full text-left text-xs border-collapse table-fixed"&gt;
+                    &lt;thead&gt;
+                        &lt;tr class="text-gray-400 border-b border-gray-800 pb-2 uppercase text-[11px] font-bold"&gt;
+                            &lt;th class="p-2 w-8 text-center"&gt;KÉO&lt;/th&gt;
+                            &lt;th class="p-2 w-8 text-center"&gt;STT&lt;/th&gt;
+                            &lt;th class="p-2 w-[250px]"&gt;TÊN TÀI KHOẢN&lt;/th&gt;
+                            &lt;th class="p-2 w-16 text-center"&gt;CHECK&lt;/th&gt;
+                            &lt;th class="p-2 text-center w-[220px]"&gt;TIẾN ĐỘ THƯƠNG NHÂN&lt;/th&gt;
+                            &lt;th class="p-2 w-12 text-center"&gt;KHÓA&lt;/th&gt;
+                            &lt;th class="p-2 w-12 text-center"&gt;COPY&lt;/th&gt;
+                            &lt;th class="p-2 w-28 text-center"&gt;CHUYỂN NHÓM&lt;/th&gt;
+                        &lt;/tr&gt;
+                    &lt;/thead&gt;
+                    &lt;tbody id="merchant-members-table-body"&gt;&lt;/tbody&gt;
+                &lt;/table&gt;
+            &lt;/div&gt;
         `;
         viewport.appendChild(merchantPanel);
     }
@@ -288,9 +288,9 @@ function renderMerchantMainUI() {
         subTabsHolder.innerHTML = dataTeams.map(t => {
             let isActive = t.id === activeMerchantTeamId;
             return `
-                <button onclick="selectMerchantTeam('${t.id}')" class="px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${isActive ? 'bg-amber-600 text-white shadow-md' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'}">
-                    <i class="fa-solid fa-users text-[10px] mr-1"></i>${t.name.toUpperCase()}
-                </button>
+                &lt;button onclick="selectMerchantTeam('${t.id}')" class="px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${isActive ? 'bg-amber-600 text-white shadow-md' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'}"&gt;
+                    &lt;i class="fa-solid fa-users text-[10px] mr-1"&gt;&lt;/i&gt;${t.name.toUpperCase()}
+                &lt;/button&gt;
             `;
         }).join('');
     }
@@ -311,7 +311,7 @@ function renderMerchantTableBody() {
 
     let team = systemDatabase.teams.find(t => t.id === activeMerchantTeamId);
     if (!team) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-gray-500 italic">Chưa chọn nhóm tài khoản.</td></tr>`;
+        tbody.innerHTML = `&lt;tr&gt;&lt;td colspan="8" class="text-center py-6 text-gray-500 italic"&gt;Chưa chọn nhóm tài khoản.&lt;/td&gt;&lt;/tr&gt;`;
         return;
     }
 
@@ -319,22 +319,22 @@ function renderMerchantTableBody() {
     let currentHour = new Date().getHours();
     let html = "";
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i &lt; 8; i++) {
         let memberId = team.memberIds[i];
         let m = memberId ? systemDatabase.members[memberId] : null;
 
         if (!m) {
             html += `
-                <tr class="border-b border-gray-800/50 bg-gray-900/30 text-gray-600">
-                    <td class="py-3 px-1 text-center"><i class="fa-solid fa-bars opacity-30"></i></td>
-                    <td class="py-3 px-1 text-center font-bold">${i + 1}</td>
-                    <td class="py-3 px-1 italic whitespace-nowrap overflow-hidden text-ellipsis">-- Vị trí trống --</td>
-                    <td class="py-3 px-1 text-center">--</td>
-                    <td class="py-3 px-1 text-center">--</td>
-                    <td class="py-3 px-1 text-center">--</td>
-                    <td class="py-3 px-1 text-center">--</td>
-                    <td class="py-3 px-1 text-center">--</td>
-                </tr>
+                &lt;tr class="border-b border-gray-800/50 bg-gray-900/30 text-gray-600"&gt;
+                    &lt;td class="py-3 px-1 text-center"&gt;&lt;i class="fa-solid fa-bars opacity-30"&gt;&lt;/i&gt;&lt;/td&gt;
+                    &lt;td class="py-3 px-1 text-center font-bold"&gt;${i + 1}&lt;/td&gt;
+                    &lt;td class="py-3 px-1 italic whitespace-nowrap overflow-hidden text-ellipsis"&gt;-- Vị trí trống --&lt;/td&gt;
+                    &lt;td class="py-3 px-1 text-center"&gt;--&lt;/td&gt;
+                    &lt;td class="py-3 px-1 text-center"&gt;--&lt;/td&gt;
+                    &lt;td class="py-3 px-1 text-center"&gt;--&lt;/td&gt;
+                    &lt;td class="py-3 px-1 text-center"&gt;--&lt;/td&gt;
+                    &lt;td class="py-3 px-1 text-center"&gt;--&lt;/td&gt;
+                &lt;/tr&gt;
             `;
             continue;
         }
@@ -355,7 +355,7 @@ function renderMerchantTableBody() {
             checkHourText = `${lastHour}h`;
 
             let diffHour = currentHour - lastHour;
-            if (diffHour < 0) diffHour += 24;
+            if (diffHour &lt; 0) diffHour += 24;
 
             if (diffHour === 0) {
                 checkClass = "bg-emerald-600 text-white font-black shadow-md border border-emerald-400";
@@ -369,87 +369,87 @@ function renderMerchantTableBody() {
         let nameCellHtml = "";
         if (isEditing) {
             nameCellHtml = `
-                <div class="flex items-center gap-1 w-[240px]">
-                    <input type="text" id="merchant-input-name-${m.id}" value="${pureCoreName}" class="bg-gray-800 border border-amber-500 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none w-[170px] font-bold shrink-0" />
-                    <button onclick="saveMerchantMemberName('${m.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2 py-0.5 rounded transition text-xs flex items-center gap-1 cursor-pointer shrink-0">
-                        <i class="fa-solid fa-floppy-disk"></i> Lưu
-                    </button>
-                </div>
+                &lt;div class="flex items-center gap-1 w-[240px]"&gt;
+                    &lt;input type="text" id="merchant-input-name-${m.id}" value="${pureCoreName}" class="bg-gray-800 border border-amber-500 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none w-[170px] font-bold shrink-0" /&gt;
+                    &lt;button onclick="saveMerchantMemberName('${m.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2 py-0.5 rounded transition text-xs flex items-center gap-1 cursor-pointer shrink-0"&gt;
+                        &lt;i class="fa-solid fa-floppy-disk"&gt;&lt;/i&gt; Lưu
+                    &lt;/button&gt;
+                &lt;/div&gt;
             `;
         } else {
             nameCellHtml = `
-                <div class="flex items-center gap-1.5 group cursor-pointer w-[240px] overflow-hidden">
-                    <span class="font-bold text-gray-100 text-xs whitespace-nowrap overflow-hidden text-ellipsis shrink" title="${fullDisplayName}">${fullDisplayName || '<span class="text-gray-600 italic">[Trống]</span>'}</span>
-                    <button onclick="enableEditMerchantMemberName('${m.id}')" class="opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-gray-800 hover:bg-gray-700 text-blue-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-gray-700 cursor-pointer shrink-0">
-                        <i class="fa-solid fa-pen"></i> Sửa
-                    </button>
-                </div>
+                &lt;div class="flex items-center gap-1.5 group cursor-pointer w-[240px] overflow-hidden"&gt;
+                    &lt;span class="font-bold text-gray-100 text-xs whitespace-nowrap overflow-hidden text-ellipsis shrink" title="${fullDisplayName}"&gt;${fullDisplayName || '&lt;span class="text-gray-600 italic"&gt;[Trống]&lt;/span&gt;'}&lt;/span&gt;
+                    &lt;button onclick="enableEditMerchantMemberName('${m.id}')" class="opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-gray-800 hover:bg-gray-700 text-blue-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-gray-700 cursor-pointer shrink-0"&gt;
+                        &lt;i class="fa-solid fa-pen"&gt;&lt;/i&gt; Sửa
+                    &lt;/button&gt;
+                &lt;/div&gt;
             `;
         }
 
         let progressCellHtml = "";
         if (isLocked) {
             progressCellHtml = `
-                <div class="flex items-center justify-between w-full h-9 bg-gray-955 border border-gray-800 rounded-lg overflow-hidden opacity-30 pointer-events-none select-none">
-                    <button class="bg-gray-800/80 text-gray-500 w-7 h-full font-black flex items-center justify-center text-xs shrink-0">-</button>
-                    <div class="flex-1 h-full relative flex items-center justify-center">
-                        <div class="absolute left-0 top-0 bottom-0 bg-emerald-600/50 transition-all duration-300" style="width: ${percent}%;"></div>
-                        <span class="relative z-10 font-black text-xs text-gray-400">${runs} / 3</span>
-                    </div>
-                    <button class="bg-gray-800/80 text-gray-500 w-7 h-full font-black flex items-center justify-center text-xs shrink-0">+</button>
-                </div>
+                &lt;div class="flex items-center justify-between w-full h-9 bg-gray-955 border border-gray-800 rounded-lg overflow-hidden opacity-30 pointer-events-none select-none"&gt;
+                    &lt;button class="bg-gray-800/80 text-gray-500 w-7 h-full font-black flex items-center justify-center text-xs shrink-0"&gt;-&lt;/button&gt;
+                    &lt;div class="flex-1 h-full relative flex items-center justify-center"&gt;
+                        &lt;div class="absolute left-0 top-0 bottom-0 bg-emerald-600/50 transition-all duration-300" style="width: ${percent}%;"&gt;&lt;/div&gt;
+                        &lt;span class="relative z-10 font-black text-xs text-gray-400"&gt;${runs} / 3&lt;/span&gt;
+                    &lt;/div&gt;
+                    &lt;button class="bg-gray-800/80 text-gray-500 w-7 h-full font-black flex items-center justify-center text-xs shrink-0"&gt;+&lt;/button&gt;
+                &lt;/div&gt;
             `;
         } else {
             progressCellHtml = `
-                <div class="flex items-center justify-between w-full h-9 bg-gray-955 border border-gray-700 hover:border-amber-500/60 rounded-lg overflow-hidden select-none shadow-inner transition">
-                    <button onclick="changeMerchantProgress('${m.id}', -1)" class="bg-gray-800/90 hover:bg-gray-700 text-rose-400 hover:text-white w-7 h-full font-black transition cursor-pointer border-r border-gray-700/80 flex items-center justify-center text-xs shrink-0 shadow-sm">-</button>
-                    <div onclick="tapIncrementMerchantProgress('${m.id}')" title="Nhấn trực tiếp để tăng tiến độ" class="flex-1 h-full relative cursor-pointer flex items-center justify-center group/bar">
-                        <div class="absolute left-0 top-0 bottom-0 ${runs === 3 ? 'bg-emerald-500' : 'bg-emerald-600/90'} transition-all duration-300" style="width: ${percent}%;"></div>
-                        <span class="relative z-10 font-black text-xs text-white drop-shadow group-hover/bar:scale-105 transition-transform">${runs} / 3</span>
-                    </div>
-                    <button onclick="changeMerchantProgress('${m.id}', 1)" class="bg-gray-800/90 hover:bg-gray-700 text-emerald-400 hover:text-white w-7 h-full font-black transition cursor-pointer border-l border-gray-700/80 flex items-center justify-center text-xs shrink-0 shadow-sm">+</button>
-                </div>
+                &lt;div class="flex items-center justify-between w-full h-9 bg-gray-955 border border-gray-700 hover:border-amber-500/60 rounded-lg overflow-hidden select-none shadow-inner transition"&gt;
+                    &lt;button onclick="changeMerchantProgress('${m.id}', -1)" class="bg-gray-800/90 hover:bg-gray-700 text-rose-400 hover:text-white w-7 h-full font-black transition cursor-pointer border-r border-gray-700/80 flex items-center justify-center text-xs shrink-0 shadow-sm"&gt;-&lt;/button&gt;
+                    &lt;div onclick="tapIncrementMerchantProgress('${m.id}')" title="Nhấn trực tiếp để tăng tiến độ" class="flex-1 h-full relative cursor-pointer flex items-center justify-center group/bar"&gt;
+                        &lt;div class="absolute left-0 top-0 bottom-0 ${runs === 3 ? 'bg-emerald-500' : 'bg-emerald-600/90'} transition-all duration-300" style="width: ${percent}%;"&gt;&lt;/div&gt;
+                        &lt;span class="relative z-10 font-black text-xs text-white drop-shadow group-hover/bar:scale-105 transition-transform"&gt;${runs} / 3&lt;/span&gt;
+                    &lt;/div&gt;
+                    &lt;button onclick="changeMerchantProgress('${m.id}', 1)" class="bg-gray-800/90 hover:bg-gray-700 text-emerald-400 hover:text-white w-7 h-full font-black transition cursor-pointer border-l border-gray-700/80 flex items-center justify-center text-xs shrink-0 shadow-sm"&gt;+&lt;/button&gt;
+                &lt;/div&gt;
             `;
         }
 
         let teamOptionsHtml = allDataTeams.map(dt => `
-            <option value="${dt.id}" ${dt.id === team.id ? 'selected' : ''}>- ${dt.name.toUpperCase()} -</option>
+            &lt;option value="${dt.id}" ${dt.id === team.id ? 'selected' : ''}&gt;- ${dt.name.toUpperCase()} -&lt;/option&gt;
         `).join('');
 
         html += `
-            <tr draggable="true" 
+            &lt;tr draggable="true" 
                 ondragstart="handleMerchantDragStart(event, ${i})" 
                 ondragover="handleMerchantDragOver(event)" 
                 ondrop="handleMerchantDrop(event, ${i})" 
-                class="border-b border-gray-800 hover:bg-gray-800/40 transition">
+                class="border-b border-gray-800 hover:bg-gray-800/40 transition"&gt;
                 
-                <td class="py-3 px-1 text-center cursor-grab active:cursor-grabbing text-gray-500 hover:text-amber-400">
-                    <i class="fa-solid fa-bars"></i>
-                </td>
-                <td class="py-3 px-1 text-center font-bold text-gray-400">${i + 1}</td>
-                <td class="py-3 px-1 w-[250px]">${nameCellHtml}</td>
-                <td class="py-3 px-1 text-center">
-                    <span class="inline-block px-2 py-0.5 rounded text-xs transition-all duration-200 ${checkClass}">
+                &lt;td class="py-3 px-1 text-center cursor-grab active:cursor-grabbing text-gray-500 hover:text-amber-400"&gt;
+                    &lt;i class="fa-solid fa-bars"&gt;&lt;/i&gt;
+                &lt;/td&gt;
+                &lt;td class="py-3 px-1 text-center font-bold text-gray-400"&gt;${i + 1}&lt;/td&gt;
+                &lt;td class="py-3 px-1 w-[250px]"&gt;${nameCellHtml}&lt;/td&gt;
+                &lt;td class="py-3 px-1 text-center"&gt;
+                    &lt;span class="inline-block px-2 py-0.5 rounded text-xs transition-all duration-200 ${checkClass}"&gt;
                         ${checkHourText}
-                    </span>
-                </td>
-                <td class="py-3 px-1 text-center">${progressCellHtml}</td>
-                <td class="py-3 px-1 text-center">
-                    <button onclick="toggleMerchantMemberLock('${m.id}')" class="text-sm transition cursor-pointer ${isLocked ? 'text-rose-500' : 'text-gray-600 hover:text-gray-400'}">
-                        <i class="fa-solid ${isLocked ? 'fa-lock' : 'fa-lock-open'}"></i>
-                    </button>
-                </td>
-                <td class="py-3 px-1 text-center">
-                    <button onclick="copyMerchantMemberName('${pureCoreName}')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 p-1.5 rounded-lg transition border border-gray-700 cursor-pointer hover:border-gray-500" title="Copy tên TK gốc: ${pureCoreName}">
-                        <i class="fa-solid fa-copy"></i>
-                    </button>
-                </td>
-                <td class="py-3 px-1 text-center">
-                    <select onchange="moveMerchantMemberToTeam('${m.id}', this.value)" class="bg-gray-800 border border-gray-700 rounded p-1 text-[11px] text-gray-200 focus:outline-none font-semibold cursor-pointer w-full text-center">
+                    &lt;/span&gt;
+                &lt;/td&gt;
+                &lt;td class="py-3 px-1 text-center"&gt;${progressCellHtml}&lt;/td&gt;
+                &lt;td class="py-3 px-1 text-center"&gt;
+                    &lt;button onclick="toggleMerchantMemberLock('${m.id}')" class="text-sm transition cursor-pointer ${isLocked ? 'text-rose-500' : 'text-gray-600 hover:text-gray-400'}"&gt;
+                        &lt;i class="fa-solid ${isLocked ? 'fa-lock' : 'fa-lock-open'}"&gt;&lt;/i&gt;
+                    &lt;/button&gt;
+                &lt;/td&gt;
+                &lt;td class="py-3 px-1 text-center"&gt;
+                    &lt;button onclick="copyMerchantMemberName('${pureCoreName}')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 p-1.5 rounded-lg transition border border-gray-700 cursor-pointer hover:border-gray-500" title="Copy tên TK gốc: ${pureCoreName}"&gt;
+                        &lt;i class="fa-solid fa-copy"&gt;&lt;/i&gt;
+                    &lt;/button&gt;
+                &lt;/td&gt;
+                &lt;td class="py-3 px-1 text-center"&gt;
+                    &lt;select onchange="moveMerchantMemberToTeam('${m.id}', this.value)" class="bg-gray-800 border border-gray-700 rounded p-1 text-[11px] text-gray-200 focus:outline-none font-semibold cursor-pointer w-full text-center"&gt;
                         ${teamOptionsHtml}
-                    </select>
-                </td>
-            </tr>
+                    &lt;/select&gt;
+                &lt;/td&gt;
+            &lt;/tr&gt;
         `;
     }
 
@@ -460,7 +460,7 @@ function renderMerchantTableBody() {
 function enableEditMerchantMemberName(memberId) {
     editingMerchantMemberId = memberId;
     renderMerchantTableBody();
-    setTimeout(() => {
+    setTimeout(() =&gt; {
         let input = document.getElementById(`merchant-input-name-${memberId}`);
         if (input) input.focus();
     }, 50);
@@ -491,14 +491,14 @@ function changeMerchantProgress(memberId, delta) {
 
     let current = parseInt(m.merchantRuns) || 0;
     
-    if (delta > 0 && current >= 3) {
+    if (delta &gt; 0 && current &gt;= 3) {
         if (typeof logUserAction === 'function') logUserAction(`Tài khoản [${m.name}] đã hoàn thành tối đa 3/3 lượt!`);
         return;
     }
 
     let nextVal = current + delta;
 
-    if (nextVal >= 0 && nextVal <= 3) {
+    if (nextVal &gt;= 0 && nextVal &lt;= 3) {
         let actualStep = nextVal - current;
         m.merchantRuns = nextVal;
         m.merchantLastHour = new Date().getHours();
@@ -519,7 +519,7 @@ function tapIncrementMerchantProgress(memberId) {
 
     let current = parseInt(m.merchantRuns) || 0;
 
-    if (current >= 3) {
+    if (current &gt;= 3) {
         if (typeof logUserAction === 'function') logUserAction(`Tài khoản [${m.name}] đã hoàn thành tối đa 3/3 lượt Thương Nhân!`);
         return;
     }
@@ -549,19 +549,19 @@ function toggleMerchantMemberLock(memberId) {
 
 function copyMerchantMemberName(name) {
     let cleanName = (typeof getPureCoreAccountName === 'function') ? getPureCoreAccountName(name) : name;
-    navigator.clipboard.writeText(cleanName).then(() => {
+    navigator.clipboard.writeText(cleanName).then(() =&gt; {
         if (typeof logUserAction === 'function') logUserAction(`Đã Copy: ${cleanName}`);
     });
 }
 
 function moveMerchantMemberToTeam(memberId, targetTeamId) {
-    let currentTeam = systemDatabase.teams.filter(t => t.type === 'data').find(t => t.id === activeMerchantTeamId);
-    let targetTeam = systemDatabase.teams.find(t => t.id === targetTeamId);
+    let currentTeam = systemDatabase.teams.filter(t =&gt; t.type === 'data').find(t =&gt; t.id === activeMerchantTeamId);
+    let targetTeam = systemDatabase.teams.find(t =&gt; t.id === targetTeamId);
 
     if (!currentTeam || !targetTeam || currentTeam.id === targetTeam.id) return;
 
     let m = systemDatabase.members[memberId];
-    currentTeam.memberIds = currentTeam.memberIds.filter(id => id !== memberId);
+    currentTeam.memberIds = currentTeam.memberIds.filter(id =&gt; id !== memberId);
     targetTeam.memberIds.push(memberId);
 
     if (typeof saveStateToMemoryCache === 'function') saveStateToMemoryCache();
@@ -586,7 +586,7 @@ function handleMerchantDrop(e, targetIndex) {
     e.preventDefault();
     if (draggedMerchantRowIndex === null || draggedMerchantRowIndex === targetIndex) return;
 
-    let team = systemDatabase.teams.filter(t => t.type === 'data').find(t => t.id === activeMerchantTeamId);
+    let team = systemDatabase.teams.filter(t =&gt; t.type === 'data').find(t =&gt; t.id === activeMerchantTeamId);
     if (!team) return;
 
     let temp = team.memberIds[draggedMerchantRowIndex];
@@ -615,7 +615,7 @@ if (typeof window.refreshUserInterfaceLayout === 'function' && !window.refreshUs
             isMerchantTabActive = true;
             let viewport = document.getElementById('active-panel-view-viewport');
             if (viewport) {
-                Array.from(viewport.children).forEach(child => {
+                Array.from(viewport.children).forEach(child =&gt; {
                     if (child.id !== 'tab-content-quan-ly-thuong-nhan') {
                         child.classList.add('hidden');
                     }
@@ -635,14 +635,14 @@ if (typeof window.refreshUserInterfaceLayout === 'function' && !window.refreshUs
     window.refreshUserInterfaceLayout.__merchantHooked = true;
 }
 
-setInterval(() => {
+setInterval(() =&gt; {
     let merchantPanel = document.getElementById('tab-content-quan-ly-thuong-nhan');
     if (merchantPanel && !merchantPanel.classList.contains('hidden')) {
         renderMerchantTableBody();
     }
 }, 30000);
 
-setInterval(() => {
+setInterval(() =&gt; {
     setupGoldRateLiveSync();
 }, 500);
 
