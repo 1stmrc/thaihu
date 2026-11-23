@@ -1,5 +1,5 @@
 // Tên file: kho-luu-tru.js
-// Chức năng: Quản lý bộ nhớ đệm LocalStorage (V2), bảo toàn mảng Presets, Đội Hình Xếp, lịch sử Timer Thương Nhân, cấu hình Header, Reset ngày đồng bộ an toàn cả 3 phân hệ (Thái Hư, Thương Nhân, Sát Thủ) và chống đá văng tab.
+// Chức năng: Quản lý bộ nhớ đệm LocalStorage (V2), chống tràn bộ nhớ QuotaExceededError, bảo toàn mảng Presets, Đội Hình Xếp, lịch sử Timer Thương Nhân, cấu hình Header, Reset ngày đồng bộ an toàn cả 3 phân hệ (Thái Hư, Thương Nhân, Sát Thủ) và chống đá văng tab.
 // Con của file: index.html
 
 /* ==========================================================================
@@ -28,7 +28,7 @@ function initSystemEngine() {
                         systemDatabase.merchantTimerDb = { dailyHistory: {}, totalAllSeconds: 0, totalAllSessions: 0 };
                     }
                 } else {
-                    localStorage.setItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1', JSON.stringify(systemDatabase.merchantTimerDb));
+                    try { localStorage.setItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1', JSON.stringify(systemDatabase.merchantTimerDb)); } catch(e){}
                 }
 
                 let currentId = systemDatabase.currentPresetId;
@@ -148,7 +148,7 @@ function parseAndLoadFromPayloadTemplate(sourcePayload) {
 }
 
 /* ==========================================================================
-   KHỐI 2: LƯU TRỮ TRẠNG THÁI & MẪU MẶC ĐỊNH
+   KHỐI 2: LƯU TRỮ TRẠNG THÁI & MẪU MẶC ĐỊNH (CHỐNG TRÀN QUOTA 5MB)
    ========================================================================== */
 function getVietnamCurrentDateString() {
     return new Intl.DateTimeFormat('en-CA', { 
@@ -159,6 +159,18 @@ function getVietnamCurrentDateString() {
     }).format(new Date());
 }
 
+function purgeOldStorageSnapshots(keepDaysCount = 3) {
+    try {
+        let snapshotKeys = Object.keys(localStorage)
+            .filter(k => k.startsWith('THAIHU_SNAPSHOT_'))
+            .sort();
+        while (snapshotKeys.length > keepDaysCount) {
+            let oldestKey = snapshotKeys.shift();
+            if (oldestKey) localStorage.removeItem(oldestKey);
+        }
+    } catch (e) {}
+}
+
 function saveStateToMemoryCache() {
     let matPrice = document.getElementById('input-material-price');
     let gRate = document.getElementById('input-gold-rate');
@@ -167,50 +179,62 @@ function saveStateToMemoryCache() {
 
     if (matPrice) {
         systemDatabase.materialPrice = matPrice.value;
-        localStorage.setItem('HEADER_MAT_PRICE', matPrice.value);
+        try { localStorage.setItem('HEADER_MAT_PRICE', matPrice.value); } catch(e){}
     }
     if (gRate) {
         systemDatabase.goldRate = gRate.value;
-        localStorage.setItem('HEADER_GOLD_RATE', gRate.value);
+        try { localStorage.setItem('HEADER_GOLD_RATE', gRate.value); } catch(e){}
     }
     if (tPrice) {
         systemDatabase.ticketPrice = tPrice.value;
-        localStorage.setItem('HEADER_TICKET_PRICE', tPrice.value);
+        try { localStorage.setItem('HEADER_TICKET_PRICE', tPrice.value); } catch(e){}
     }
     if (rPrice) {
         systemDatabase.refundPrice = rPrice.value;
-        localStorage.setItem('HEADER_REFUND_PRICE', rPrice.value);
+        try { localStorage.setItem('HEADER_REFUND_PRICE', rPrice.value); } catch(e){}
     }
 
     if (systemDatabase.merchantTimerDb) {
-        localStorage.setItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1', JSON.stringify(systemDatabase.merchantTimerDb));
+        try { localStorage.setItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1', JSON.stringify(systemDatabase.merchantTimerDb)); } catch(e){}
     }
 
-    // 1. Lưu bản runtime V2 đang chạy
-    localStorage.setItem('V2_THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase));
+    // 1. Lưu bản runtime V2 đang chạy (ưu tiên tối đa)
+    try {
+        localStorage.setItem('V2_THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase));
+    } catch (e) {
+        // Nếu đầy bộ nhớ, xóa bớt snapshot cũ rồi lưu lại ngay
+        purgeOldStorageSnapshots(1);
+        try { localStorage.setItem('V2_THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase)); } catch(err){}
+    }
 
-    // 2. Lưu snapshot riêng cho từng ngày theo giờ GMT+7 Hà Nội
+    // 2. Lưu snapshot riêng cho từng ngày theo giờ GMT+7 Hà Nội (tự dọn rác giữ tối đa 3 ngày)
     const todayStr = getVietnamCurrentDateString();
-    const dailySnapshotPackage = {
-        saveDate: todayStr,
-        lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-        systemDatabase: systemDatabase,
-        settings: {
-            materialPrice: localStorage.getItem('HEADER_MAT_PRICE') || "0.25",
-            goldRate: localStorage.getItem('HEADER_GOLD_RATE') || "155.000",
-            ticketPrice: localStorage.getItem('HEADER_TICKET_PRICE') || "24",
-            refundPrice: localStorage.getItem('HEADER_REFUND_PRICE') || "16"
-        }
-    };
-    localStorage.setItem('THAIHU_SNAPSHOT_' + todayStr, JSON.stringify(dailySnapshotPackage));
+    try {
+        purgeOldStorageSnapshots(3);
+        const dailySnapshotPackage = {
+            saveDate: todayStr,
+            lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+            systemDatabase: systemDatabase,
+            settings: {
+                materialPrice: localStorage.getItem('HEADER_MAT_PRICE') || "0.25",
+                goldRate: localStorage.getItem('HEADER_GOLD_RATE') || "155.000",
+                ticketPrice: localStorage.getItem('HEADER_TICKET_PRICE') || "24",
+                refundPrice: localStorage.getItem('HEADER_REFUND_PRICE') || "16"
+            }
+        };
+        localStorage.setItem('THAIHU_SNAPSHOT_' + todayStr, JSON.stringify(dailySnapshotPackage));
 
-    // 3. Quản lý danh mục các ngày đã lưu
-    let historyDays = JSON.parse(localStorage.getItem('THAIHU_HISTORY_INDEX') || '[]');
-    if (!historyDays.includes(todayStr)) {
-        historyDays.push(todayStr);
-        localStorage.setItem('THAIHU_HISTORY_INDEX', JSON.stringify(historyDays));
+        let historyDays = JSON.parse(localStorage.getItem('THAIHU_HISTORY_INDEX') || '[]');
+        if (!historyDays.includes(todayStr)) {
+            historyDays.push(todayStr);
+            if (historyDays.length > 7) historyDays = historyDays.slice(-7);
+            localStorage.setItem('THAIHU_HISTORY_INDEX', JSON.stringify(historyDays));
+        }
+        localStorage.setItem('THAIHU_LAST_ACTIVE_DAY', todayStr);
+    } catch (quotaErr) {
+        // Nếu snapshot ngày vượt quá 5MB, dọn toàn bộ snapshot cũ để không bao giờ sập luồng
+        purgeOldStorageSnapshots(0);
     }
-    localStorage.setItem('THAIHU_LAST_ACTIVE_DAY', todayStr);
 }
 
 function saveCurrentAsDefaultTemplate() { 
@@ -240,8 +264,13 @@ function saveCurrentAsDefaultTemplate() {
         localStorage.setItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1', JSON.stringify(systemDatabase.merchantTimerDb));
     }
 
-    localStorage.setItem('V2_THAI_HU_CUSTOM_DEFAULT_TEMPLATE', JSON.stringify(systemDatabase)); 
-    localStorage.setItem('V2_THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase)); 
+    try {
+        purgeOldStorageSnapshots(2);
+        localStorage.setItem('V2_THAI_HU_CUSTOM_DEFAULT_TEMPLATE', JSON.stringify(systemDatabase)); 
+        localStorage.setItem('V2_THAI_HU_UPGRADED_RUNTIME_DB', JSON.stringify(systemDatabase)); 
+    } catch (e) {
+        alert("Cảnh báo bộ nhớ trình duyệt gần đầy, hãy xuất file JSON backup!");
+    }
     
     if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity(); 
     if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout(); 
@@ -259,6 +288,7 @@ function resetToHardcodedDefault() {
         localStorage.removeItem('HEADER_TICKET_PRICE');
         localStorage.removeItem('HEADER_REFUND_PRICE');
         localStorage.removeItem('SYSTEM_MERCHANT_TIMER_HISTORY_DATABASE_V1');
+        purgeOldStorageSnapshots(0);
         
         systemDatabase.deoHistory = []; 
         systemDatabase.lineupPresets = []; 
@@ -305,14 +335,12 @@ function resetDailyRunsOnly() {
         let isCurrentlyAtMerchant = merchantView && !merchantView.classList.contains('hidden');
 
         if (isCurrentlyAtSatThu) {
-            // Đang ở tab Sát Thủ: Chỉ render bảng Sát Thủ & Popup Thống Kê
             if (typeof renderSatThuTableRows === 'function') renderSatThuTableRows();
             if (typeof updateSatThuStatsDashboardUI === 'function') updateSatThuStatsDashboardUI();
         } else if (isCurrentlyAtMerchant) {
-            // Đang ở tab Thương Nhân: Chỉ render bảng Thương Nhân
-            if (typeof renderMerchantTableRows === 'function') renderMerchantTableRows();
+            if (typeof renderMerchantMainUI === 'function') renderMerchantMainUI();
+            else if (typeof renderMerchantTableBody === 'function') renderMerchantTableBody();
         } else {
-            // Chỉ render Thái Hư khi người dùng ĐANG THỰC SỰ Ở TAB THÁI HƯ
             if (typeof evaluateLineupsDynamicCapacity === 'function') evaluateLineupsDynamicCapacity();
             if (typeof refreshUserInterfaceLayout === 'function') refreshUserInterfaceLayout();
             if (typeof renderThaiHuMainView === 'function') renderThaiHuMainView();
@@ -328,7 +356,6 @@ function resetDailyRunsOnly() {
     }
 }
 
-// Bổ sung hàm alias để đồng bộ với mọi nơi gọi pipeline reset
 function executeDailyResetPipeline() {
     resetDailyRunsOnly();
 }
