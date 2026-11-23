@@ -2,7 +2,7 @@
 // Chức năng: Bộ điều phối popup Thu Nhập Thương Nhân (quét chuẩn 100% 64 acc từ 8 Data Team, trừ đúng acc khóa, có nút gạt [Bỏ Hoàn Vàng] auto bật sẵn, tính 1.2v/lượt) & Quản lý Thất Bại.
 // Con của file: index.html (Được nạp ở cuối cùng trước script.js).
 
-var isMerchantExcludeRefund = (typeof isMerchantExcludeRefund !== 'undefined') ? isMerchantExcludeRefund : true;
+window.isMerchantExcludeRefund = (typeof window.isMerchantExcludeRefund !== 'undefined') ? window.isMerchantExcludeRefund : true;
 window.tempFailuresState = window.tempFailuresState || {};
 
 /* ==========================================================================
@@ -92,7 +92,7 @@ function renderMerchantCardModal() {
             team.memberIds.forEach(mId => {
                 let m = systemDatabase.members[mId];
                 if (!m || !m.name) return;
-                if (m.isLocked || m.locked) {
+                if (m.isLocked || m.locked || m.merchantLocked) {
                     lockedAccounts++;
                     return;
                 }
@@ -108,7 +108,7 @@ function renderMerchantCardModal() {
     let maxPossibleRuns = activeAccounts * 3;
 
     // Đơn giá vàng/lượt: Nếu bật [Bỏ Hoàn Vàng] thì tính phần lãi thực tế; bỏ tích thì tính full 1.2v/lượt
-    let goldPerRun = isMerchantExcludeRefund ? 0.8 : 1.2;
+    let goldPerRun = window.isMerchantExcludeRefund ? 0.8 : 1.2;
     let totalGoldEarned = totalRunsDone * goldPerRun;
 
     // Quy đổi VNĐ theo ô 1K Vàng trên Header
@@ -133,7 +133,7 @@ function renderMerchantCardModal() {
                 </div>
                 <div class="flex flex-col text-right">
                     <span class="text-[10px] text-gray-400 font-bold uppercase">Tổng Lượt Đã Đi</span>
-                    <span class="text-sm font-black text-amber-400">${totalRunsDone} /${maxPossibleRuns}</span>
+                    <span class="text-sm font-black text-amber-400">${totalRunsDone} / ${maxPossibleRuns}</span>
                 </div>
                 <div class="flex flex-col pt-1 border-t border-gray-800/80">
                     <span class="text-[10px] text-emerald-400 font-bold">Đã xong (3/3): <b>${completedAccounts}</b></span>
@@ -145,7 +145,7 @@ function renderMerchantCardModal() {
 
             <label class="flex items-center justify-between bg-gray-800/80 hover:bg-gray-800 px-3 py-2 rounded-lg border border-gray-700 cursor-pointer select-none">
                 <span class="text-gray-200 font-bold text-[11px]">Bỏ Hoàn Vàng (Tính lãi ròng)</span>
-                <input type="checkbox" ${isMerchantExcludeRefund ? 'checked' : ''} onchange="toggleMerchantExcludeRefundState(this.checked)" class="w-4 h-4 accent-amber-500 cursor-pointer">
+                <input type="checkbox" ${window.isMerchantExcludeRefund ? 'checked' : ''} onchange="toggleMerchantExcludeRefundState(this.checked)" class="w-4 h-4 accent-amber-500 cursor-pointer">
             </label>
 
             <div class="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3 flex flex-col gap-1">
@@ -167,7 +167,7 @@ function renderMerchantCardModal() {
 }
 
 function toggleMerchantExcludeRefundState(isChecked) {
-    isMerchantExcludeRefund = isChecked;
+    window.isMerchantExcludeRefund = isChecked;
     renderMerchantCardModal();
     if (typeof calculateComprehensiveProfitsRealtime === 'function') {
         calculateComprehensiveProfitsRealtime();
@@ -263,7 +263,26 @@ function renderFailedRunsList(m) {
     let area = document.getElementById('failed-runs-list-area');
     if (!area) return;
     
-    let html = `<div class="text-gray-400 font-bold mb-1">Cấu hình lượt đi (Thực tế đã đi: ${m.currentRuns || 0}/${m.maxRuns \vert{}\vert{} 3} lượt):</div>`; let renderedCount = 0; let maxRuns = m.maxRuns \vert{}\vert{} 3;  for (let runIdx = 1; runIdx <= maxRuns; runIdx++) { if (runIdx > (m.currentRuns \vert{}\vert{} 0)) continue;  renderedCount++; let currentFailure = window.tempFailuresState[runIdx]; let statusText = "Thành công"; let selectVal = "success";  if (currentFailure) { if (currentFailure.type === 'zero') { statusText = "Thất bại (0 NL)"; selectVal = "zero"; } else if (currentFailure.type === 'half') { let halfNl = runIdx === 1 ? 12 : 24; statusText = `Thất bại (Nửa NL: ${halfNl} NL)`;
+    let maxRuns = m.maxRuns || 3;
+    let currentRuns = m.currentRuns || 0;
+    let html = `<div class="text-gray-400 font-bold mb-1">Cấu hình lượt đi (Thực tế đã đi: ${currentRuns}/${maxRuns} lượt):</div>`;
+    let renderedCount = 0;
+
+    for (let runIdx = 1; runIdx <= maxRuns; runIdx++) {
+        if (runIdx > currentRuns) continue;
+        
+        renderedCount++;
+        let currentFailure = window.tempFailuresState[runIdx];
+        let statusText = "Thành công";
+        let selectVal = "success";
+        
+        if (currentFailure) {
+            if (currentFailure.type === 'zero') {
+                statusText = "Thất bại (0 NL)";
+                selectVal = "zero";
+            } else if (currentFailure.type === 'half') {
+                let halfNl = runIdx === 1 ? 12 : 24;
+                statusText = `Thất bại (Nửa NL: ${halfNl} NL)`;
                 selectVal = "half";
             }
         }
@@ -280,7 +299,8 @@ function renderFailedRunsList(m) {
                 </div>
                 <select onchange="updateTempFailureRunState(${runIdx}, this.value)" class="w-full bg-gray-800 border border-gray-700 rounded p-1 text-[11px] text-white focus:outline-none font-semibold mt-1">
                     ${optionSuccess}
-                    ${optionZero}${optionHalf}
+                    ${optionZero}
+                    ${optionHalf}
                 </select>
             </div>
         `;
