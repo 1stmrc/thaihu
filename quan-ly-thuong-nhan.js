@@ -6,7 +6,7 @@ let activeMerchantTeamId = null;
 let editingMerchantMemberId = null;
 let draggedMerchantRowIndex = null;
 let isMerchantTabActive = false;
-let isMerchantExcludeRefund = (typeof isMerchantExcludeRefund !== 'undefined') ? isMerchantExcludeRefund : true;
+window.isMerchantExcludeRefund = (typeof window.isMerchantExcludeRefund !== 'undefined') ? window.isMerchantExcludeRefund : true;
 
 // --- HÀM ĐIỀU PHỐI HIỂN THỊ AN TOÀN CHO CÁC TAB (TÔN TRỌNG NÚT ẨN POPUP) ---
 function applyMerchantPopupVisibility() {
