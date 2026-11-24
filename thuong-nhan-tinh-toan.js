@@ -4,7 +4,10 @@
 window.isMerchantExcludeRefund = (typeof window.isMerchantExcludeRefund !== 'undefined') ? window.isMerchantExcludeRefund : true;
 
 function calculateMerchantMetricsData() {
-    let matPrice = (typeof systemDatabase !== 'undefined' && systemDatabase.materialPrice) ? parseFloat(systemDatabase.materialPrice) : 0.3;
+    let matInputEl = document.getElementById('input-material-price');
+    let matPrice = (matInputEl && matInputEl.value !== "") 
+        ? (parseFloat(matInputEl.value) || 0) 
+        : ((typeof systemDatabase !== 'undefined' && systemDatabase.materialPrice) ? parseFloat(systemDatabase.materialPrice) : 0.3);
     
     let goldInputEl = document.getElementById('input-gold-rate');
     let rawVal = goldInputEl ? goldInputEl.value : "";
