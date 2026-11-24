@@ -1,9 +1,9 @@
 // Tên file: thanh-dieu-huong-tab.js
-// Chức năng: Điều phối 6 Tab chính, mũi tên to vàng chuyển động rõ nét, chỉ hiện popup Thống Kê Sát Thủ khi ở tab Sát Thủ và tôn trọng trạng thái nút Ẩn Tất Cả Popup trên Header.
+// Chức năng: Điều phối 6 Tab chính gọn 1 hàng ngang, mũi tên to vàng chuyển động rõ nét, chỉ hiện popup Thống Kê Sát Thủ khi ở tab Sát Thủ và tôn trọng trạng thái nút Ẩn Tất Cả Popup trên Header.
 // Con của file: index.html
 
 const BAT_QUAI_SVG_ICON = `
-<svg class="w-3.5 h-3.5 inline-block align-middle fill-current text-amber-300" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<svg class="w-3.5 h-3.5 inline-block align-middle fill-current text-amber-300 shrink-0" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <polygon points="30,5 70,5 95,30 95,70 70,95 30,95 5,70 5,30" fill="none" stroke="currentColor" stroke-width="5"/>
     <line x1="40" y1="12" x2="60" y2="12" stroke="currentColor" stroke-width="3"/>
     <line x1="40" y1="17" x2="60" y2="17" stroke="currentColor" stroke-width="3"/>
@@ -15,15 +15,16 @@ const BAT_QUAI_SVG_ICON = `
 </svg>`;
 
 function setActiveMainTabUI(activeKey) {
-    const INACTIVE_CLASS = "px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0";
+    const BASE_BTN_CLASS = "px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer uppercase flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap leading-none";
+    const INACTIVE_CLASS = `${BASE_BTN_CLASS} bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700`;
 
     const TAB_ACTIVE_STYLES = {
-        thaihu: "px-3 py-1.5 rounded-lg text-xs font-black bg-blue-600 text-white shadow border border-blue-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0",
-        merchant: "px-3 py-1.5 rounded-lg text-xs font-black bg-amber-600 text-white shadow border border-amber-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0",
-        satthu: "px-3 py-1.5 rounded-lg text-xs font-black bg-rose-600 text-white shadow border border-rose-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0",
-        optimize: "px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600 text-white shadow border border-emerald-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0",
-        deo: "px-3 py-1.5 rounded-lg text-xs font-black bg-purple-600 text-white shadow border border-purple-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0",
-        logs: "px-3 py-1.5 rounded-lg text-xs font-black bg-cyan-600 text-white shadow border border-cyan-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0"
+        thaihu: `${BASE_BTN_CLASS} bg-blue-600 text-white shadow border border-blue-500`,
+        merchant: `${BASE_BTN_CLASS} bg-amber-600 text-white shadow border border-amber-500`,
+        satthu: `${BASE_BTN_CLASS} bg-rose-600 text-white shadow border border-rose-500`,
+        optimize: `${BASE_BTN_CLASS} bg-emerald-600 text-white shadow border border-emerald-500`,
+        deo: `${BASE_BTN_CLASS} bg-purple-600 text-white shadow border border-purple-500`,
+        logs: `${BASE_BTN_CLASS} bg-cyan-600 text-white shadow border border-cyan-500`
     };
 
     const TAB_BUTTON_IDS = {
@@ -47,7 +48,7 @@ function setActiveMainTabUI(activeKey) {
             // MŨI TÊN TO, MÀU VÀNG HỔ PHÁCH, NHỊP NHẢY RÕ RÀNG
             if (isCurrentActive) {
                 let arrowSpan = document.createElement('span');
-                arrowSpan.className = "tab-down-arrow ml-1 text-xs text-amber-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] inline-block transform translate-y-0.5 animate-bounce";
+                arrowSpan.className = "tab-down-arrow ml-0.5 text-xs text-amber-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] inline-flex items-center shrink-0 animate-bounce";
                 arrowSpan.innerHTML = '<i class="fa-solid fa-caret-down text-sm"></i>';
                 btn.appendChild(arrowSpan);
             }
@@ -124,6 +125,9 @@ function handleMainTabSwitch(target) {
         if (typeof switchToActivityLogTab === 'function') switchToActivityLogTab();
     }
 
+    // Khóa lại giao diện nút 1 hàng ngang sau khi các hàm render tab con chạy xong (chống bị ghi đè class)
+    setActiveMainTabUI(target);
+
     // Khóa lại trạng thái ẩn popup sau khi các hàm render tab con chạy xong
     let isAllPopupsHidden = localStorage.getItem('HIDE_ALL_FLOATING_POPUPS') === 'true';
     if (typeof applyAllFloatingPopupsVisibility === 'function') {
@@ -135,36 +139,38 @@ function injectMainTabsComponent() {
     let container = document.getElementById('injection-main-tabs-container');
     if (!container) return;
 
+    const DEFAULT_BTN_CLASS = "px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap leading-none";
+
     container.innerHTML = `
         <div class="shrink-0 bg-gray-900 px-2.5 py-1.5 border-b border-gray-700 flex items-center gap-1.5 rounded-t-xl z-20 overflow-x-auto no-scrollbar">
             <!-- 1. THÁI HƯ -->
-            <button onclick="handleMainTabSwitch('thaihu')" id="btn-main-tab-thaihu" class="px-3 py-1.5 rounded-lg text-xs font-black bg-blue-600 text-white shadow border border-blue-500 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
+            <button onclick="handleMainTabSwitch('thaihu')" id="btn-main-tab-thaihu" class="px-3 py-1.5 rounded-lg text-xs font-black bg-blue-600 text-white shadow border border-blue-500 transition cursor-pointer uppercase flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap leading-none">
                 ${BAT_QUAI_SVG_ICON} Thái Hư
             </button>
 
-            <!-- 2. QUẢN LÝ THƯƠNG NHÂN -->
-            <button onclick="handleMainTabSwitch('merchant')" id="btn-main-tab-merchant" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
-                <i class="fa-solid fa-coins text-amber-400"></i> Quản Lý Thương Nhân
+            <!-- 2. THƯƠNG NHÂN -->
+            <button onclick="handleMainTabSwitch('merchant')" id="btn-main-tab-merchant" class="${DEFAULT_BTN_CLASS}">
+                <i class="fa-solid fa-coins text-amber-400"></i> Thương Nhân
             </button>
 
             <!-- 3. SÁT THỦ -->
-            <button onclick="handleMainTabSwitch('satthu')" id="btn-main-tab-satthu" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
+            <button onclick="handleMainTabSwitch('satthu')" id="btn-main-tab-satthu" class="${DEFAULT_BTN_CLASS}">
                 <i class="fa-solid fa-skull text-white drop-shadow"></i> SÁT THỦ
             </button>
 
-            <!-- 4. SO SÁNH TỐI ƯU -->
-            <button onclick="handleMainTabSwitch('optimize')" id="btn-main-tab-optimize" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
-                <i class="fa-solid fa-scale-balanced text-emerald-400"></i> So Sánh Tối Ưu
+            <!-- 4. SO SÁNH -->
+            <button onclick="handleMainTabSwitch('optimize')" id="btn-main-tab-optimize" class="${DEFAULT_BTN_CLASS}">
+                <i class="fa-solid fa-scale-balanced text-emerald-400"></i> So Sánh
             </button>
 
-            <!-- 5. QUẢN LÝ ĐOÀI -->
-            <button onclick="handleMainTabSwitch('deo')" id="btn-main-tab-deo" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
-                <i class="fa-solid fa-gem text-purple-400"></i> Quản Lý Đoài
+            <!-- 5. ĐOÀI -->
+            <button onclick="handleMainTabSwitch('deo')" id="btn-main-tab-deo" class="${DEFAULT_BTN_CLASS}">
+                <i class="fa-solid fa-gem text-purple-400"></i> Đoài
             </button>
 
-            <!-- 6. LỊCH SỬ HÀNH ĐỘNG -->
-            <button onclick="handleMainTabSwitch('logs')" id="btn-main-tab-logs" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800/80 text-gray-300 border border-gray-700 hover:bg-gray-700 transition cursor-pointer uppercase flex items-center gap-1.5 shrink-0">
-                <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i> Lịch Sử Hành Động
+            <!-- 6. LỊCH SỬ -->
+            <button onclick="handleMainTabSwitch('logs')" id="btn-main-tab-logs" class="${DEFAULT_BTN_CLASS}">
+                <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i> Lịch Sử
             </button>
         </div>
     `;
