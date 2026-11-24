@@ -70,14 +70,14 @@ function changeMerchantProgress(memberId, delta) {
 
     let current = parseInt(m.merchantRuns) || 0;
     
-    if (delta &gt; 0 && current &gt;= 3) {
+    if (delta > 0 && current >= 3) {
         if (typeof logUserAction === 'function') logUserAction(`Tài khoản [${m.name}] đã hoàn thành tối đa 3/3 lượt!`);
         return;
     }
 
     let nextVal = current + delta;
 
-    if (nextVal &gt;= 0 && nextVal &lt;= 3) {
+    if (nextVal >= 0 && nextVal <= 3) {
         let actualStep = nextVal - current;
         m.merchantRuns = nextVal;
         m.merchantLastHour = new Date().getHours();
@@ -98,7 +98,7 @@ function tapIncrementMerchantProgress(memberId) {
 
     let current = parseInt(m.merchantRuns) || 0;
 
-    if (current &gt;= 3) {
+    if (current >= 3) {
         if (typeof logUserAction === 'function') logUserAction(`Tài khoản [${m.name}] đã hoàn thành tối đa 3/3 lượt Thương Nhân!`);
         return;
     }
