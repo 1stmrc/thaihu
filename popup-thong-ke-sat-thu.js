@@ -361,3 +361,4 @@ window.showSatThuStatsPopup = showSatThuStatsPopup;
 window.hideSatThuStatsPopup = hideSatThuStatsPopup;
 window.toggleSatThuStatsCollapse = toggleSatThuStatsCollapse;
 window.updateSatThuStatsDashboardUI = updateSatThuStatsDashboardUI;
+window.toggleSatThuExcludeGold = toggleSatThuExcludeGold;
