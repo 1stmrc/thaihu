@@ -4,7 +4,7 @@
 
 const SAT_THU_STORAGE_KEY = 'SYSTEM_SAT_THU_ANALYTICS_V1';
 let isSatThuStatsCollapsed = false;
-let isSatThuExcludeGold = true; // Mặc định BẬT (chỉ tính NL, không tính vàng 1.11v)
+let isSatThuExcludeGold = false; // Đổi thành true nếu mặc định chỉ tính NL, bỏ vàng 1.11v
 // 1. THÔNG SỐ ĐỘ CAO (CÁCH MÉP TRÊN MÀN HÌNH) - TÙY CHỈNH TẠI ĐÂY
 const SAT_THU_POPUP_TOP_POSITION = "180px"; // Đổi thành 150px, 170px, 180px tùy ý muốn thay chiều cao pop up
 
@@ -23,7 +23,7 @@ function isSatThuEventSessionActive() {
 
 function getSatThuMasterAnalyticsData() {
     let matPrice = (typeof systemDatabase !== 'undefined' && systemDatabase.materialPrice) ? parseFloat(systemDatabase.materialPrice) : 0.3;
-    
+
     let isEventToday = false;
     if (typeof EventManager !== 'undefined' && typeof EventManager.isEventCurrentlyActiveGMT7 === 'function') {
         isEventToday = EventManager.isEventCurrentlyActiveGMT7();
@@ -54,7 +54,7 @@ function getSatThuMasterAnalyticsData() {
 
     let todayDirectGold = isSatThuExcludeGold ? 0 : (totalDoneRuns * 1.11);
     let todayMaterials = isEventToday ? (totalDoneRuns * 12) : 0;
-    
+
     let todayMaterialGold = todayMaterials * matPrice;
     let todayTotalGold = todayDirectGold + todayMaterialGold;
     let todayNganPhieu = totalDoneRuns;
@@ -103,7 +103,7 @@ function getSatThuMasterAnalyticsData() {
                             }
                         });
                         let dayGold = isSatThuExcludeGold ? 0 : (dayRuns * 1.11);
-    let dayNL = dayRuns * 12;
+                        let dayNL = dayRuns * 12;
                         let dayPrice = parseFloat(parsed.settings?.materialPrice || matPrice);
                         eventTotalGold += (dayGold + (dayNL * dayPrice));
                         eventTotalMaterials += dayNL;
@@ -160,7 +160,6 @@ function injectSatThuStatsPopupComponent() {
 
     let widget = document.createElement('div');
     widget.id = 'sat-thu-stats-floating-widget';
-    // Xóa top-[...] trong class, cố định trực tiếp qua style.top để nhận lệnh chuẩn xác 100%
     widget.className = "fixed right-2.5 z-40 select-none transition-all duration-200 hidden font-sans";
     widget.style.top = SAT_THU_POPUP_TOP_POSITION;
 
@@ -188,7 +187,7 @@ function injectSatThuStatsPopupComponent() {
                     </svg>
                     <span id="sat-thu-pie-percent-text" class="absolute font-mono font-black text-sm text-rose-300 drop-shadow-[0_0_6px_rgba(244,63,94,0.8)]">0%</span>
                 </div>
-                
+
                 <div class="w-full flex flex-col gap-1 border-t border-cyan-900/50 pt-2 font-mono">
                     <div class="flex justify-between items-center text-xs">
                         <span class="font-sans text-[11px] text-gray-400 font-bold">Tổng lượt:</span>
@@ -212,7 +211,7 @@ function injectSatThuStatsPopupComponent() {
                         <i class="fa-solid fa-calendar-day text-amber-400"></i> HÔM NAY
                     </span>
                     <label class="inline-flex items-center cursor-pointer select-none" title="Bật để chỉ tính tiền Nguyên Liệu, bỏ qua 1.11v/lượt">
-                        <input id="chk-sat-thu-exclude-gold" type="checkbox" checked class="sr-only peer" onchange="toggleSatThuExcludeGold(this.checked)">
+                        <input id="chk-sat-thu-exclude-gold" type="checkbox" ${isSatThuExcludeGold ? 'checked' : ''} class="sr-only peer" onchange="toggleSatThuExcludeGold(this.checked)">
                         <div class="relative w-5 h-3 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-2 after:w-2 peer-checked:bg-amber-500 transition-all"></div>
                         <span class="ms-1 font-sans text-[9px] text-amber-300 font-bold">Bỏ vàng</span>
                     </label>
@@ -261,6 +260,7 @@ function injectSatThuStatsPopupComponent() {
     window.addEventListener('resize', updatePopupPositionAndWidth);
     updateSatThuStatsDashboardUI();
 }
+
 function toggleSatThuExcludeGold(isChecked) {
     isSatThuExcludeGold = isChecked;
     updateSatThuStatsDashboardUI();
@@ -268,9 +268,6 @@ function toggleSatThuExcludeGold(isChecked) {
         calculateComprehensiveProfitsRealtime();
     }
 }
-
-function toggleSatThuStatsCollapse() {
-    
 
 function showSatThuStatsPopup() {
     let widget = document.getElementById('sat-thu-stats-floating-widget');
@@ -293,8 +290,9 @@ function showSatThuStatsPopup() {
         updatePopupPositionAndWidth();
         updateSatThuStatsDashboardUI();
     }
+}
 
-
+function toggleSatThuStatsCollapse() {
     isSatThuStatsCollapsed = !isSatThuStatsCollapsed;
     let mainCard = document.getElementById('sat-thu-stats-main-card');
     let toggleBtn = document.getElementById('sat-thu-stats-toggle-btn');
@@ -310,6 +308,7 @@ function showSatThuStatsPopup() {
         }
     }
 }
+
 function hideSatThuStatsPopup() {
     let widget = document.getElementById('sat-thu-stats-floating-widget');
     if (widget) widget.classList.add('hidden');
