@@ -261,28 +261,7 @@ function injectSatThuStatsPopupComponent() {
     window.addEventListener('resize', updatePopupPositionAndWidth);
     updateSatThuStatsDashboardUI();
 }
-function toggleSatThuExcludeGold(isChecked) {
-    isSatThuExcludeGold = isChecked;
-    updateSatThuStatsDashboardUI();
-    if (typeof calculateComprehensiveProfitsRealtime === 'function') {
-        calculateComprehensiveProfitsRealtime();
-    }
-}
-    isSatThuStatsCollapsed = !isSatThuStatsCollapsed;
-    let mainCard = document.getElementById('sat-thu-stats-main-card');
-    let toggleBtn = document.getElementById('sat-thu-stats-toggle-btn');
-    if (mainCard && toggleBtn) {
-        if (isSatThuStatsCollapsed) {
-            mainCard.classList.add('hidden');
-            toggleBtn.classList.remove('hidden');
-        } else {
-            mainCard.classList.remove('hidden');
-            toggleBtn.classList.add('hidden');
-            updatePopupPositionAndWidth();
-            updateSatThuStatsDashboardUI();
-        }
-    }
-}
+
 function toggleSatThuStatsCollapse() {
     
 
@@ -308,7 +287,28 @@ function showSatThuStatsPopup() {
         updateSatThuStatsDashboardUI();
     }
 }
-
+function toggleSatThuExcludeGold(isChecked) {
+    isSatThuExcludeGold = isChecked;
+    updateSatThuStatsDashboardUI();
+    if (typeof calculateComprehensiveProfitsRealtime === 'function') {
+        calculateComprehensiveProfitsRealtime();
+    }
+}
+    isSatThuStatsCollapsed = !isSatThuStatsCollapsed;
+    let mainCard = document.getElementById('sat-thu-stats-main-card');
+    let toggleBtn = document.getElementById('sat-thu-stats-toggle-btn');
+    if (mainCard && toggleBtn) {
+        if (isSatThuStatsCollapsed) {
+            mainCard.classList.add('hidden');
+            toggleBtn.classList.remove('hidden');
+        } else {
+            mainCard.classList.remove('hidden');
+            toggleBtn.classList.add('hidden');
+            updatePopupPositionAndWidth();
+            updateSatThuStatsDashboardUI();
+        }
+    }
+}
 function hideSatThuStatsPopup() {
     let widget = document.getElementById('sat-thu-stats-floating-widget');
     if (widget) widget.classList.add('hidden');
