@@ -261,6 +261,13 @@ function injectSatThuStatsPopupComponent() {
     window.addEventListener('resize', updatePopupPositionAndWidth);
     updateSatThuStatsDashboardUI();
 }
+function toggleSatThuExcludeGold(isChecked) {
+    isSatThuExcludeGold = isChecked;
+    updateSatThuStatsDashboardUI();
+    if (typeof calculateComprehensiveProfitsRealtime === 'function') {
+        calculateComprehensiveProfitsRealtime();
+    }
+}
 
 function toggleSatThuStatsCollapse() {
     
@@ -286,14 +293,8 @@ function showSatThuStatsPopup() {
         updatePopupPositionAndWidth();
         updateSatThuStatsDashboardUI();
     }
-}
-function toggleSatThuExcludeGold(isChecked) {
-    isSatThuExcludeGold = isChecked;
-    updateSatThuStatsDashboardUI();
-    if (typeof calculateComprehensiveProfitsRealtime === 'function') {
-        calculateComprehensiveProfitsRealtime();
-    }
-}
+
+
     isSatThuStatsCollapsed = !isSatThuStatsCollapsed;
     let mainCard = document.getElementById('sat-thu-stats-main-card');
     let toggleBtn = document.getElementById('sat-thu-stats-toggle-btn');
