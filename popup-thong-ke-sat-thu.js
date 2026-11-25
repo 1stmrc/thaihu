@@ -4,7 +4,7 @@
 
 const SAT_THU_STORAGE_KEY = 'SYSTEM_SAT_THU_ANALYTICS_V1';
 let isSatThuStatsCollapsed = false;
-
+let isSatThuExcludeGold = true; // Mặc định BẬT (chỉ tính NL, không tính vàng 1.11v)
 // 1. THÔNG SỐ ĐỘ CAO (CÁCH MÉP TRÊN MÀN HÌNH) - TÙY CHỈNH TẠI ĐÂY
 const SAT_THU_POPUP_TOP_POSITION = "180px"; // Đổi thành 150px, 170px, 180px tùy ý muốn thay chiều cao pop up
 
@@ -52,7 +52,7 @@ function getSatThuMasterAnalyticsData() {
     let remainingAccs = Math.max(0, totalAccs - completed3RunsCount);
     let percent = maxPossibleRuns > 0 ? Math.round((totalDoneRuns / maxPossibleRuns) * 100) : 0;
 
-    let todayDirectGold = totalDoneRuns * 1.11;
+    let todayDirectGold = isSatThuExcludeGold ? 0 : (totalDoneRuns * 1.11);
     let todayMaterials = isEventToday ? (totalDoneRuns * 12) : 0;
     
     let todayMaterialGold = todayMaterials * matPrice;
@@ -102,8 +102,8 @@ function getSatThuMasterAnalyticsData() {
                                 dayRuns += (parseInt(oldM.satThuRuns) || 0);
                             }
                         });
-                        let dayGold = dayRuns * 1.11;
-                        let dayNL = dayRuns * 12;
+                        let dayGold = isSatThuExcludeGold ? 0 : (dayRuns * 1.11);
+    let dayNL = dayRuns * 12;
                         let dayPrice = parseFloat(parsed.settings?.materialPrice || matPrice);
                         eventTotalGold += (dayGold + (dayNL * dayPrice));
                         eventTotalMaterials += dayNL;
@@ -207,9 +207,16 @@ function injectSatThuStatsPopupComponent() {
 
             <!-- KHỐI 2: DOANH THU HÔM NAY (VÀNG & NGUYÊN LIỆU) -->
             <div class="bg-[#061824] border border-cyan-800/80 p-2.5 rounded-xl flex flex-col gap-1.5 font-mono shadow-inner">
-                <span class="text-[10px] font-sans text-cyan-300 font-black uppercase tracking-wider border-b border-cyan-900/50 pb-1 flex items-center gap-1">
-                    <i class="fa-solid fa-calendar-day text-amber-400"></i> HÔM NAY
-                </span>
+                <div class="flex justify-between items-center border-b border-cyan-900/50 pb-1">
+                    <span class="text-[10px] font-sans text-cyan-300 font-black uppercase tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-day text-amber-400"></i> HÔM NAY
+                    </span>
+                    <label class="inline-flex items-center cursor-pointer select-none" title="Bật để chỉ tính tiền Nguyên Liệu, bỏ qua 1.11v/lượt">
+                        <input id="chk-sat-thu-exclude-gold" type="checkbox" checked class="sr-only peer" onchange="toggleSatThuExcludeGold(this.checked)">
+                        <div class="relative w-5 h-3 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-2 after:w-2 peer-checked:bg-amber-500 transition-all"></div>
+                        <span class="ms-1 font-sans text-[9px] text-amber-300 font-bold">Bỏ vàng</span>
+                    </label>
+                </div>
                 <div class="flex justify-between items-center text-xs">
                     <span class="font-sans text-[11px] text-gray-400 font-bold">Vàng hôm nay:</span>
                     <strong id="sat-thu-today-gold" class="text-xs font-black text-amber-300">+0.00v</strong>
@@ -256,6 +263,13 @@ function injectSatThuStatsPopupComponent() {
 }
 
 function toggleSatThuStatsCollapse() {
+    function toggleSatThuExcludeGold(isChecked) {
+    isSatThuExcludeGold = isChecked;
+    updateSatThuStatsDashboardUI();
+    if (typeof calculateComprehensiveProfitsRealtime === 'function') {
+        calculateComprehensiveProfitsRealtime();
+    }
+}
     isSatThuStatsCollapsed = !isSatThuStatsCollapsed;
     let mainCard = document.getElementById('sat-thu-stats-main-card');
     let toggleBtn = document.getElementById('sat-thu-stats-toggle-btn');
