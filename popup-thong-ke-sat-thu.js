@@ -261,9 +261,7 @@ function injectSatThuStatsPopupComponent() {
     window.addEventListener('resize', updatePopupPositionAndWidth);
     updateSatThuStatsDashboardUI();
 }
-
-function toggleSatThuStatsCollapse() {
-    function toggleSatThuExcludeGold(isChecked) {
+function toggleSatThuExcludeGold(isChecked) {
     isSatThuExcludeGold = isChecked;
     updateSatThuStatsDashboardUI();
     if (typeof calculateComprehensiveProfitsRealtime === 'function') {
@@ -285,6 +283,8 @@ function toggleSatThuStatsCollapse() {
         }
     }
 }
+function toggleSatThuStatsCollapse() {
+    
 
 function showSatThuStatsPopup() {
     let widget = document.getElementById('sat-thu-stats-floating-widget');
