@@ -52,8 +52,9 @@ function getSatThuMasterAnalyticsData() {
     let remainingAccs = Math.max(0, totalAccs - completed3RunsCount);
     let percent = maxPossibleRuns > 0 ? Math.round((totalDoneRuns / maxPossibleRuns) * 100) : 0;
 
-    let todayDirectGold = totalDoneRuns * 1.2;
-    let todayMaterials = isEventToday ? (totalDoneRuns * 18) : 0;
+    let todayDirectGold = totalDoneRuns * 1.11;
+    let todayMaterials = isEventToday ? (totalDoneRuns * 12) : 0;
+    
     let todayMaterialGold = todayMaterials * matPrice;
     let todayTotalGold = todayDirectGold + todayMaterialGold;
     let todayNganPhieu = totalDoneRuns;
@@ -101,8 +102,8 @@ function getSatThuMasterAnalyticsData() {
                                 dayRuns += (parseInt(oldM.satThuRuns) || 0);
                             }
                         });
-                        let dayGold = dayRuns * 1.2;
-                        let dayNL = dayRuns * 18;
+                        let dayGold = dayRuns * 1.11;
+                        let dayNL = dayRuns * 12;
                         let dayPrice = parseFloat(parsed.settings?.materialPrice || matPrice);
                         eventTotalGold += (dayGold + (dayNL * dayPrice));
                         eventTotalMaterials += dayNL;
